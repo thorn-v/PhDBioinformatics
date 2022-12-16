@@ -7,12 +7,12 @@ script_full_path=$(dirname $0)
 # These are the files and variables that will be needed
 usage() { printf 'Varient Calling Pipleine V1
     USAGE
+    
     Takes downloaded .sra files and decompresses them,
     QC check them with fastp (using Sam Longs QCModern.sh script),
     maps passed reads to the provided reference libary (assumes library has been established),
     calls varients,
-    ... 
-    profit?
+
     Assumes you have fastp, BWA mem, sra-toolbox, Sams Scrips (ModernQC.sh, BWAmemMapping.sh, lib\)   
 
     -i\tThe folder that contains the Raw sequencing files [REQUIRED]
