@@ -6,22 +6,23 @@ script_full_path=$(dirname $0)
 
 # These are the files and variables that will be needed
 usage() { printf 'Varient Calling Pipleine V1
-    USAGE
-    
-    Takes downloaded .sra files and decompresses them,
-    QC check them with fastp (using Sam Longs QCModern.sh script),
-    maps passed reads to the provided reference libary (assumes library has been established),
-    calls varients,
+        USAGE
+        
+        Takes downloaded .sra files and decompresses them,
+        QC check them with fastp (using Sam Longs QCModern.sh script),
+        maps passed reads to the provided reference libary (assumes library has been established),
+        calls varients,
+        more ...
 
-    Assumes you have fastp, BWA mem, sra-toolbox, Sams Scrips (ModernQC.sh, BWAmemMapping.sh, lib\)   
+        Assumes you have fastp, BWA mem, sra-toolbox,    
 
-    -i\tThe folder that contains the Raw sequencing files [REQUIRED]
-    -r\tSequence Reference library Folder [REQUIRED]
-	-o\tThe output prefix (Default: inputfoldername)
+        -i\tThe folder that contains the Raw sequencing files [REQUIRED]
+        -r\tSequence Reference library Folder [REQUIRED]
+        -o\tThe output prefix (Default: inputfoldername)
 	-n\tNumber of CPU Threads to be used (Default: 8)
 	-l\tLog File Name (Default: $date)
 	-k\tMinimum Read Length (Default: 30)
-    -h\tShow this help message and exit\n' 1>&2; exit 1; }
+        -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 # Creating a simple command to save the settings used.
 log() {	printf "Mapping settings for $(date):
@@ -47,9 +48,9 @@ log="$(date +'%Y_%m_%d').log"
 while getopts "i:r:k:n:o:l:h" arg; do
         case $arg in
                 i)
-                        declare -r folder=${OPTARG}
+                        declare -r sample=${OPTARG}
                         out=${OPTARG}
-                        export folder
+                        export sample
                         ;;
                 r)
                         declare -r reference=${OPTARG}
@@ -77,25 +78,33 @@ while getopts "i:r:k:n:o:l:h" arg; do
         esac
 done
 
-### Check for missing inputs ###
+### Check for missing or wrong inputs ###
 
-if [[ -z "${folder}" ]]; then
-    printf '\nMissing required input - Please provide input SRA download folder\n\nUse -h for usage help\n'
-    exit 1;
+if [[ -z "${sample}" ]]; then
+        printf '\nMissing required input - Please provide input SRA download folder\n\nUse -h for usage help\n'
+        exit 1;
 fi
- 
+
+if [[ -z -d "${sample}" ]]; then
+        printf '\nPlease provide a Directory for input SRA\n\nUse -h for usage help\n'
+        exit 1;
+
 if [[ -z "${reference}" ]]; then
-    printf '\nMissing required input - Please provide Reference Genome Library\n\nUse -h for usage help\n'
-    exit 1;
+        printf '\nMissing required input - Please provide Reference Genome Library\n\nUse -h for usage help\n'
+        exit 1;
 fi
 
 
 
-echo $folder
+echo $sample
 echo $reference   
 echo $ncores
 echo $len
 echo $log
 # Writing the Log File
 #log | tee $log
+
+
+
+
 
