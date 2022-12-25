@@ -16,9 +16,9 @@ usage() { printf 'Varient Calling Pipleine V1
 
         Assumes you have fastp, BWA mem, sra-toolbox,    
 
-        -i\tThe folder that contains the Raw sequencing files [REQUIRED]
+        -i\tThe SRA accesson (folder that contains the Raw sequencing files) [REQUIRED]
         -r\tSequence Reference library Folder [REQUIRED]
-        -o\tThe output prefix (Default: inputfoldername)
+        -o\tThe output prefix (Default: inputfoldername_processed)
 	-n\tNumber of CPU Threads to be used (Default: 8)
 	-l\tLog File Name (Default: $date)
 	-k\tMinimum Read Length (Default: 30)
@@ -38,9 +38,9 @@ log() {	printf "Mapping settings for $(date):
 #export -f FileIdentificationInFunction
 #export -f FileExtractionInFunction
 
-#Default Values
-export ncores=8
-export len=30
+# Default Values
+ncores=8
+len=30
 log="$(date +'%Y_%m_%d').log"
 
 
@@ -49,24 +49,19 @@ while getopts "i:r:k:n:o:l:h" arg; do
         case $arg in
                 i)
                         declare -r sample=${OPTARG}
-                        out=${OPTARG}
-                        export sample
+                        out= printf "${OPTARG}_processed"
                         ;;
                 r)
                         declare -r reference=${OPTARG}
-                        export reference
                         ;;
                 o)
                         out=${OPTARG}
-                        export out
                         ;;
                 n)
                         declare -i ncores=${OPTARG}
-                        export ncores
                         ;;
                 k)
                         len=${OPTARG}
-                        export len
                         ;;
                 l)
                         log=${OPTARG}
@@ -85,9 +80,10 @@ if [[ -z "${sample}" ]]; then
         exit 1;
 fi
 
-if [[ -z -d "${sample}" ]]; then
+if [[ ! -d "${sample}" ]]; then #checks that the sample is a folder and not the .sra file
         printf '\nPlease provide a Directory for input SRA\n\nUse -h for usage help\n'
         exit 1;
+fi
 
 if [[ -z "${reference}" ]]; then
         printf '\nMissing required input - Please provide Reference Genome Library\n\nUse -h for usage help\n'
@@ -98,11 +94,17 @@ fi
 
 echo $sample
 echo $reference   
-echo $ncores
-echo $len
-echo $log
+#echo $ncores
+#echo $len
+#echo $log
 # Writing the Log File
 #log | tee $log
+
+#### Extract the fastq(s) ####
+
+fasterq-dump $sample -O "./${out}" 
+
+
 
 
 

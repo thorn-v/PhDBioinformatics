@@ -4,7 +4,7 @@
 ### fastp trimming, adapted from George Sam Long ###
 
 Trimming(){ # Performing the trimming
-	# Trimming
+	# requires r1, r2, sample, out
 	local r1=$1
 	local r2=$2
 	local sample=$3
@@ -50,7 +50,7 @@ Trimming(){ # Performing the trimming
 
 findExtension(){
     # assumes that you are in the same directory as the files such as after a fasterq-dump
-    if [[ -z $1 ]]; then
+    if [[ -z "$1" ]]; then
         echo "Requires sample name, please try again"
         exit 1;
     fi
