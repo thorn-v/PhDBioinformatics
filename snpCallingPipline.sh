@@ -3,6 +3,7 @@
 
 script_name=$0
 script_full_path=$(dirname $0)
+source ${script_full_path}/helperFunctions.sh
 
 # These are the files and variables that will be needed
 usage() { printf 'Varient Calling Pipleine V1
@@ -102,7 +103,16 @@ echo $reference
 
 #### Extract the fastq(s) ####
 
-fasterq-dump $sample -O "./${out}" 
+fasterq-dump $sample -O "./${out}" &
+
+PID=$!
+
+wait "${PID}" #cannot move on until the sra is unpacked
+
+cd "${out}" #move into the newley created directory with the fastq file(s)
+
+
+
 
 
 
