@@ -104,17 +104,18 @@ module load StdEnv/2020
 module load gcc/9.3.0
 module load sra-toolkit
 
-fasterq-dump $sample -O "./${out}" &
+fasterq-dump $sample -O "./${out}_Unpacked" &
 
 PID=$!
 
 wait "${PID}" #cannot move on until the sra is unpacked
+echo "done unpacking"
 
-cd "${out}" #move into the newley created directory with the fastq file(s)
+cd "${out}_Unpacked" #move into the newley created directory with the fastq file(s)
 
 # find the newly created files since they could have different ways of denoting r1/r2
 
-findExtension ${sample}
+#findExtension ${sample}
 # now we should have r1 and r2 (could be NA) as global variables
 
 # call fastp wrapper
@@ -138,7 +139,10 @@ fi
 unset fileArray
 
 
+######### QC and Trimming ###########
 ## QC and Trims the fastq file(s) based on Sam Long's parameters 
+
+module load fastq
 
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
@@ -170,7 +174,7 @@ else  # is a paired sample
                 --failed_out ${out}FailedQC/${sample}_failed.fastq.gz;
 fi
 
-
+echo "done QC"
 
 ###### Mapping ######
 
@@ -200,6 +204,7 @@ if [[ "$r1" != "NA" && "$r2" != "NA" ]]; then # if paird
 
 fi
 
+echo "Done Mapping"
 ##### Processing ######
 
 cd ${out}MappedReads
@@ -226,7 +231,7 @@ freebayes-parallel \
    <(fasta_generate_regions.py ${ref}.fai 100000) ${ncores} \
    -f ${ref} -p 1 ${out}MappedReads/${sample}_sorted-md.bam > ${sample}.vcf
 
-
+echo "done varient calling"
 ####### Filter VCF ##########
 
 mkdir FilteredVCF
@@ -238,3 +243,4 @@ vcftools --vcf ${sample}.vcf --keep-only-indels --recode --recode-INFO-all --out
 # separate SNPs
 vcftools --vcf ${sample}.vcf --remove-indels --recode --recode-INFO-all --out FilteredVCF/${sample}_snps-only.vcf
 
+echo "script finished!"
