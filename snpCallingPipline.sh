@@ -52,7 +52,7 @@ while getopts "i:r:k:n:o:l:h" arg; do
         case $arg in
                 i)
                         declare -r sample=${OPTARG}
-                        out= printf "${OPTARG}"
+                        out=${OPTARG}
                         ;;
                 r)
                         declare -r ref=${OPTARG}
@@ -125,7 +125,9 @@ fileArray=($sample*)
     # Identifying the files since they can have different endings when dumped
 if  printf '%s\n' "${fileArray[@]}" | grep -E -i -q  "r1\.f*|_1\.f*|_r1_0.*|_1"; then
         r1=$(printf '%s\n' "${fileArray[@]}" | grep -E -i 'r1\.f*|_1\.f*|_r1_0.*|_1')
-else 
+elif [[ -e -f ${sample}.fastq ]]; then
+        r1="${sample}.fastq"
+else
         r1="NA"
 fi
 
@@ -142,7 +144,7 @@ unset fileArray
 ######### QC and Trimming ###########
 ## QC and Trims the fastq file(s) based on Sam Long's parameters 
 
-module load fastq
+module load fastp
 
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
