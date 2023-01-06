@@ -113,6 +113,7 @@ echo "done unpacking"
 
 cd "${out}_Unpacked" #move into the newley created directory with the fastq file(s)
 
+pwd
 # find the newly created files since they could have different ways of denoting r1/r2
 
 #findExtension ${sample}
@@ -180,6 +181,9 @@ echo "done QC"
 
 ###### Mapping ######
 
+module load bwa
+module load samtools
+
 if [[ "${r1}" == "NA" && "${r2}" == "NA" ]]; then  
         printf "${sample}\tno reads files found - possibly merged?" | tee -a missingFiles.txt
         exit 1;
@@ -214,12 +218,12 @@ cd ${out}MappedReads
 module load picard
 module load samtools
 
-picard SortSam \
+java -jar $EBROOTPICARD/picard.jar SortSam \
       I=${sample}_mapped.bam \
       O=${sample}_sorted.bam \
       SORT_ORDER=coordinate
 
-picard MarkDuplicates \
+java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
       I=${sample}_sorted.bam \
       O=${sample}_sorted-md.bam \
       M=${sample}-md_metrics.txt
@@ -229,6 +233,7 @@ samtools index ${sample}_sorted-md.bam
 cd ..
 
 ###### Varient Calling ########
+module load freebayes
 
 freebayes-parallel \
    <(fasta_generate_regions.py ${ref}.fai 100000) ${ncores} \
