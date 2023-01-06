@@ -125,7 +125,7 @@ fileArray=($sample*)
     # Identifying the files since they can have different endings when dumped
 if  printf '%s\n' "${fileArray[@]}" | grep -E -i -q  "r1\.f*|_1\.f*|_r1_0.*|_1"; then
         r1=$(printf '%s\n' "${fileArray[@]}" | grep -E -i 'r1\.f*|_1\.f*|_r1_0.*|_1')
-elif [[ -e -f ${sample}.fastq ]]; then
+elif [[ -e "${sample}.fastq" ]]; then
         r1="${sample}.fastq"
 else
         r1="NA"
@@ -149,7 +149,7 @@ module load fastp
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
         fastp -i $r1 \
-                --out1 ${out}_r1_trimmed.fastq \
+                --out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
                 --low_complexity_filter --correction \
                 --cut_right --cut_right_window_size 4 --cut_right_mean_quality 15\
                 --cut_front --cut_front_window_size 1 --cut_front_mean_quality 3\
@@ -157,7 +157,7 @@ if [ "$r2" == "NA" ]; then # If not a paired sample...
                 --length_required $len\
                 --html ${out}FastpLogs/${sample}.html -R $sample\
                 --json ${out}FastpLogs/${sample}.json -R $sample \
-                --failed_out ${out}FailedQC/${sample}_failed.fastq.gz;
+                --failed_out ${out}FailedQC/${sample}_failed.fastq;
 
 else  # is a paired sample
 		
@@ -171,9 +171,9 @@ else  # is a paired sample
                 --overlap_len_require 15 --length_required $len\
                 --html ${out}FastpLogs/${sample}.html -R $sample \
                 --json ${out}FastpLogs/${sample}.json -R $sample \
-                --unpaired1 ${out}Trimmed/${sample}_u1.fastq.gz \
-                --unpaired2 ${out}Trimmed/${sample}_u2.fastq.gz\
-                --failed_out ${out}FailedQC/${sample}_failed.fastq.gz;
+                --unpaired1 ${out}Trimmed/${sample}_u1.fastq \
+                --unpaired2 ${out}Trimmed/${sample}_u2.fastq\
+                --failed_out ${out}FailedQC/${sample}_failed.fastq;
 fi
 
 echo "done QC"
@@ -189,7 +189,7 @@ fi
 if [[ "$r1" != "NA" && "$r2" == "NA" ]]; then # If it is not paired reads
         bwa mem ${ref} \
                 ${out}Trimmed/${sample}_r1_trimmed.fastq \ 
-                -t $ncores | samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\ #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), add unincluded to diff file 
+                -t ${ncores} | samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\ #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), add unincluded to diff file 
                 samtools sort - > ${out}MappedReads/${sample}_mapped.bam 
 
         samtools fastq tmp.bam | gzip > ${out}UnmappedReads/${sample}_Single.fastq.gz
