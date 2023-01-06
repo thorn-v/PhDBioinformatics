@@ -146,6 +146,9 @@ unset fileArray
 ## QC and Trims the fastq file(s) based on Sam Long's parameters 
 
 module load fastp
+mkdir ${out}Trimmed
+mkdir ${out}FastpLogs
+mkdir ${out}FailedQC
 
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
