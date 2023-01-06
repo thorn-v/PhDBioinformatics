@@ -113,7 +113,6 @@ echo "done unpacking"
 
 cd "${out}_Unpacked" #move into the newley created directory with the fastq file(s)
 
-pwd
 # find the newly created files since they could have different ways of denoting r1/r2
 
 #findExtension ${sample}
@@ -154,7 +153,7 @@ if [ "$r2" == "NA" ]; then # If not a paired sample...
 
         fastp -i $r1 \
                 --out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
-                --low_complexity_filter \
+                --low_complexity_filter --correction \
                 --cut_right --cut_right_window_size 4 --cut_right_mean_quality 15\
                 --cut_front --cut_front_window_size 1 --cut_front_mean_quality 3\
                 --cut_tail --cut_tail_window_size 1 --cut_tail_mean_quality 3\
@@ -186,6 +185,7 @@ echo "done QC"
 
 module load bwa
 module load samtools
+mkdir ${out}MappedReads
 
 if [[ "${r1}" == "NA" && "${r2}" == "NA" ]]; then  
         printf "${sample}\tno reads files found - possibly merged?" | tee -a missingFiles.txt
