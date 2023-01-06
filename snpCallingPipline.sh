@@ -150,7 +150,7 @@ if [ "$r2" == "NA" ]; then # If not a paired sample...
 
         fastp -i $r1 \
                 --out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
-                --low_complexity_filter --correction \
+                --low_complexity_filter \
                 --cut_right --cut_right_window_size 4 --cut_right_mean_quality 15\
                 --cut_front --cut_front_window_size 1 --cut_front_mean_quality 3\
                 --cut_tail --cut_tail_window_size 1 --cut_tail_mean_quality 3\
@@ -187,9 +187,10 @@ fi
 
 
 if [[ "$r1" != "NA" && "$r2" == "NA" ]]; then # If it is not paired reads
+        #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), add unincluded to diff file 
         bwa mem ${ref} \
-                ${out}Trimmed/${sample}_r1_trimmed.fastq \ 
-                -t ${ncores} | samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\ #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), add unincluded to diff file 
+                ${out}Trimmed/${sample}_r1_trimmed.fastq \
+                -t ${ncores} | samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\
                 samtools sort - > ${out}MappedReads/${sample}_mapped.bam 
 
         samtools fastq tmp.bam | gzip > ${out}UnmappedReads/${sample}_Single.fastq.gz
@@ -199,7 +200,7 @@ if [[ "$r1" != "NA" && "$r2" != "NA" ]]; then # if paird
 
         bwa mem ${ref} ${out}Trimmed/${sample}_r1_trimmed.fastq \
                 ${out}Trimmed/${sample}_r2_trimmed.fastq -t ${ncores} |\
-                samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\ 
+                samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\
                 samtools sort - > ${out}MappedReads/${sample}_mapped.bam
 
         samtools fastq -c 6 tmp.bam -1 ${out}UnmappedReads/${sample}_r1.fastq.gz -2 ${out}UnmappedReads/${sample}_r2.fastq.gz -s /dev/null # deletes singleton readings
