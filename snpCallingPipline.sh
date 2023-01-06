@@ -186,6 +186,7 @@ echo "done QC"
 module load bwa
 module load samtools
 mkdir ${out}MappedReads
+mkdir ${out}UnmappedReads
 
 if [[ "${r1}" == "NA" && "${r2}" == "NA" ]]; then  
         printf "${sample}\tno reads files found - possibly merged?" | tee -a missingFiles.txt
@@ -236,6 +237,7 @@ samtools index ${sample}_sorted-md.bam
 cd ..
 
 ###### Varient Calling ########
+module load python
 module load freebayes
 
 freebayes-parallel \
@@ -247,6 +249,7 @@ echo "done varient calling"
 
 mkdir FilteredVCF
 
+module load htslib
 module load vcftools
 
 # separate indels
