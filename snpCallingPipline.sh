@@ -100,7 +100,7 @@ module load gcc/9.3.0
 module load sra-toolkit
 
 ## put in a check for if the folder already exists, skip this
-if [[! -d ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} ]]; then
+if [[ ! -d ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} ]]; then
         fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} &
         PID=$!
 
@@ -140,7 +140,7 @@ unset fileArray
 
 module load fastp
 mkdir ~/scratch/Temp_WD/${out}Trimmed
-cd Temp_WD
+cd ~/scratch/Temp_WD
 
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
