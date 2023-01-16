@@ -99,13 +99,15 @@ module load StdEnv/2020
 module load gcc/9.3.0
 module load sra-toolkit
 
-fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} &
+## put in a check for if the folder already exists, skip this
+if [[! -d ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} ]]; then
+        fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} &
+        PID=$!
 
-PID=$!
-
-wait "${PID}" #cannot move on until the sra is unpacked
-echo "done unpacking"
-
+        wait "${PID}" #cannot move on until the sra is unpacked
+        echo "done unpacking"
+fi
+echo "exists now"
 cd ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} #move into the newley created directory with the fastq file(s)
 
 # find the newly created files since they could have different ways of denoting r1/r2
@@ -138,11 +140,11 @@ unset fileArray
 
 module load fastp
 mkdir ~/scratch/Temp_WD/${out}Trimmed
-
+cd Temp_WD
 
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
-        fastp -i $r1 -w ${ncores} \
+        fastp -i ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}/${r1} -w ${ncores} \
                 --out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
                 --low_complexity_filter \
                 -q ${qual} --cut_right --cut_front \
@@ -152,7 +154,8 @@ if [ "$r2" == "NA" ]; then # If not a paired sample...
 
 else  # is a paired sample
 		
-        fastp -i $r1 -I $r2 -w ${ncores} \
+        fastp -i ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}/${r1} \
+                -I ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}/${r2} -w ${ncores} \
 		--out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
 		--out2 ${out}Trimmed/${out}_r2_trimmed.fastq \
                 --detect_adapter_for_pe --low_complexity_filter \
