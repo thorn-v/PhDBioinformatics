@@ -86,6 +86,7 @@ if [[ ! -d "${sample}" ]]; then #checks that the sample is a folder and not the 
 fi
 
 if [[ -z "${ref}" ]]; then
+
         printf '\nMissing required input - Please provide Reference Genome Library\n\nUse -h for usage help\n'
         exit 1;
 fi
@@ -98,14 +99,14 @@ module load StdEnv/2020
 module load gcc/9.3.0
 module load sra-toolkit
 
-fasterq-dump ${sample} -O "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" &
+fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} &
 
 PID=$!
 
 wait "${PID}" #cannot move on until the sra is unpacked
 echo "done unpacking"
 
-cd "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" #move into the newley created directory with the fastq file(s)
+cd ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} #move into the newley created directory with the fastq file(s)
 
 # find the newly created files since they could have different ways of denoting r1/r2
 
