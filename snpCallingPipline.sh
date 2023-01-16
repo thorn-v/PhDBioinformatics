@@ -17,12 +17,10 @@ usage() { printf 'Varient Calling Pipleine V1
         Assumes you have fastp, BWA mem, sra-toolbox,    
 
         -i\tThe SRA accesson (folder that contains the Raw sequencing files) [REQUIRED]
-        -r\tSequence Reference library Folder path [REQUIRED]
-        -o\tThe output prefix (Default: inputfoldername)
+        -r\tIndexed Sequence Reference library Folder path [REQUIRED]
 	-n\tNumber of CPU Threads to be used (Default: 8)
-	-l\tLog File Name (Default: $date)
-        -q\tMinimum Mapping Quality (Default: 30)
-	-k\tMinimum Read Length (Default: 30)
+        -q\tMinimum Mapping Quality (Default: 20)
+	-l\tMinimum Read Length (Default: 20)
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 # Creating a simple command to save the settings used.
@@ -43,16 +41,15 @@ usage() { printf 'Varient Calling Pipleine V1
 
 # Default Values
 ncores=8
-len=30
-log="$(date +'%Y_%m_%d').log"
-qual=30
+len=20
+qual=20
 
 
-while getopts "i:r:k:n:o:l:h" arg; do
+while getopts "i:r:l:n:o:h" arg; do
         case $arg in
                 i)
                         declare -r sample=${OPTARG}
-                        out=${OPTARG}
+                        out="${OPTARG##*/}"
                         ;;
                 r)
                         declare -r ref=${OPTARG}
@@ -66,11 +63,8 @@ while getopts "i:r:k:n:o:l:h" arg; do
                 q)
                         declare -i qual=${OPTARG} #may want to add a check for int after
                         ;;
-                k)
-                        len=${OPTARG}
-                        ;;
                 l)
-                        log=${OPTARG}
+                        len=${OPTARG}
                         ;;
                 h | *)
                         usage
@@ -104,28 +98,25 @@ module load StdEnv/2020
 module load gcc/9.3.0
 module load sra-toolkit
 
-fasterq-dump $sample -O "./${out}_Unpacked" &
+fasterq-dump ${sample} -O "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" &
 
 PID=$!
 
 wait "${PID}" #cannot move on until the sra is unpacked
 echo "done unpacking"
 
-cd "${out}_Unpacked" #move into the newley created directory with the fastq file(s)
+cd "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" #move into the newley created directory with the fastq file(s)
 
 # find the newly created files since they could have different ways of denoting r1/r2
 
-#findExtension ${sample}
-# now we should have r1 and r2 (could be NA) as global variables
-
-# call fastp wrapper
+# now we should have r1 and r2 (could be NA)
 
 fileArray=($sample*)
     # echo "${fileArray[@]}"
     # Identifying the files since they can have different endings when dumped
 if  printf '%s\n' "${fileArray[@]}" | grep -E -i -q  "r1\.f*|_1\.f*|_r1_0.*|_1"; then
         r1=$(printf '%s\n' "${fileArray[@]}" | grep -E -i 'r1\.f*|_1\.f*|_r1_0.*|_1')
-elif [[ -e "${sample}.fastq" ]]; then
+elif [[ -e "${sample}.fastq" ]]; then #for a merged file, it gets treated as r1
         r1="${sample}.fastq"
 else
         r1="NA"
@@ -145,38 +136,32 @@ unset fileArray
 ## QC and Trims the fastq file(s) based on Sam Long's parameters 
 
 module load fastp
-mkdir ${out}Trimmed
-mkdir ${out}FastpLogs
-mkdir ${out}FailedQC
+mkdir ~/scratch/Temp_WD/${out}Trimmed
+
 
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
-        fastp -i $r1 \
+        fastp -i $r1 -w ${ncores} \
                 --out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
-                --low_complexity_filter --correction \
-                --cut_right --cut_right_window_size 4 --cut_right_mean_quality 15\
-                --cut_front --cut_front_window_size 1 --cut_front_mean_quality 3\
-                --cut_tail --cut_tail_window_size 1 --cut_tail_mean_quality 3\
-                --length_required $len\
-                --html ${out}FastpLogs/${sample}.html -R $sample\
-                --json ${out}FastpLogs/${sample}.json -R $sample \
-                --failed_out ${out}FailedQC/${sample}_failed.fastq;
+                --low_complexity_filter \
+                -q ${qual} --cut_right --cut_front \
+                --length_required $len \
+                --html ~/scratch/Fastp_Logs/${out}.html \
+                --json ~/scratch/Fastp_Logs/${out}.json;
 
 else  # is a paired sample
 		
-        fastp -i $r1 -I $r2 \
-		--out1 ${out}Trimmed/${sample}_r1_trimmed.fastq \
-		--out2 ${out}Trimmed/${sample}_r2_trimmed.fastq \
-                --detect_adapter_for_pe --correction --low_complexity_filter \
-                --cut_right --cut_right_window_size 4 --cut_right_mean_quality 15\
-                --cut_front --cut_front_window_size 1 --cut_front_mean_quality 3\
-                --cut_tail --cut_tail_window_size 1 --cut_tail_mean_quality 3\
-                --overlap_len_require 15 --length_required $len\
-                --html ${out}FastpLogs/${sample}.html -R $sample \
-                --json ${out}FastpLogs/${sample}.json -R $sample \
-                --unpaired1 ${out}Trimmed/${sample}_u1.fastq \
-                --unpaired2 ${out}Trimmed/${sample}_u2.fastq\
-                --failed_out ${out}FailedQC/${sample}_failed.fastq;
+        fastp -i $r1 -I $r2 -w ${ncores} \
+		--out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
+		--out2 ${out}Trimmed/${out}_r2_trimmed.fastq \
+                --detect_adapter_for_pe --low_complexity_filter \
+                --cut_right --cut_front -q $qual \
+                --length_required $len \
+                --html ~/scratch/Fastp_Logs/${out}.html \
+                --json ~/scratch/Fastp_Logs/${out}.json; 
+               # --unpaired1 ${out}Trimmed/${sample}_u1.fastq \
+               # --unpaired2 ${out}Trimmed/${sample}_u2.fastq\
+               # --failed_out ${out}FailedQC/${sample}_failed.fastq;
 fi
 
 echo "done QC"
@@ -189,7 +174,7 @@ mkdir ${out}MappedReads
 mkdir ${out}UnmappedReads
 
 if [[ "${r1}" == "NA" && "${r2}" == "NA" ]]; then  
-        printf "${sample}\tno reads files found - possibly merged?" | tee -a missingFiles.txt
+        printf "${sample}\tno reads files found - manually check it out ("$(date +'%d/%m/%y %H+3:%M:%S')")" | tee -a ~/scratch/missingFiles.txt
         exit 1;
 fi
 
@@ -197,21 +182,21 @@ fi
 if [[ "$r1" != "NA" && "$r2" == "NA" ]]; then # If it is not paired reads
         #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), add unincluded to diff file 
         bwa mem ${ref} \
-                ${out}Trimmed/${sample}_r1_trimmed.fastq \
+                ${out}Trimmed/${out}_r1_trimmed.fastq \
                 -t ${ncores} | samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\
-                samtools sort - > ${out}MappedReads/${sample}_mapped.bam 
+                samtools sort - > ${out}MappedReads/${out}_mapped.bam 
 
-        samtools fastq tmp.bam | gzip > ${out}UnmappedReads/${sample}_Single.fastq.gz
+        samtools fastq tmp.bam | gzip > ${out}UnmappedReads/${out}_Single.fastq.gz
 fi
 
 if [[ "$r1" != "NA" && "$r2" != "NA" ]]; then # if paird
 
-        bwa mem ${ref} ${out}Trimmed/${sample}_r1_trimmed.fastq \
-                ${out}Trimmed/${sample}_r2_trimmed.fastq -t ${ncores} |\
+        bwa mem ${ref} ${out}Trimmed/${out}_r1_trimmed.fastq \
+                ${out}Trimmed/${out}_r2_trimmed.fastq -t ${ncores} |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\
-                samtools sort - > ${out}MappedReads/${sample}_mapped.bam
+                samtools sort - > ${out}MappedReads/${out}_mapped.bam
 
-        samtools fastq -c 6 tmp.bam -1 ${out}UnmappedReads/${sample}_r1.fastq.gz -2 ${out}UnmappedReads/${sample}_r2.fastq.gz -s /dev/null # deletes singleton readings
+        samtools fastq -c 6 tmp.bam -1 ${out}UnmappedReads/${out}_r1.fastq.gz -2 ${out}UnmappedReads/${out}_r2.fastq.gz -s /dev/null # deletes singleton readings
 
 fi
 
@@ -234,7 +219,6 @@ java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
 
 samtools index ${sample}_sorted-md.bam
 
-cd ..
 
 ###### Varient Calling ########
 module load python
@@ -242,19 +226,18 @@ module load freebayes
 
 freebayes-parallel \
    <(fasta_generate_regions.py ${ref}.fai 100000) ${ncores} \
-   -f ${ref} -p 1 ${out}MappedReads/${sample}_sorted-md.bam > ${sample}.vcf
+   -f ${ref} -p 1 ${out}_sorted-md.bam > ~/scratch/Raw_VCFs/${out}.vcf
 
 echo "done varient calling"
 ####### Filter VCF ##########
 
-mkdir FilteredVCF
-
+cd ~/scratch/Raw_VCFs
 module load htslib
 module load vcftools
 
 # separate indels
-vcftools --vcf ${sample}.vcf --keep-only-indels --recode --recode-INFO-all --out FilteredVCF/${sample}_indels-only.vcf
+vcftools --vcf ${out}.vcf --keep-only-indels --recode --recode-INFO-all --out ${out}_indels-only.vcf
 # separate SNPs
-vcftools --vcf ${sample}.vcf --remove-indels --recode --recode-INFO-all --out FilteredVCF/${sample}_snps-only.vcf
+vcftools --vcf ${out}.vcf --remove-indels --recode --recode-INFO-all --out ${out}_snps-only.vcf
 
 echo "script finished!"
