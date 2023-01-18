@@ -45,8 +45,16 @@ qual=20
 while getopts "i:r:l:n:o:h" arg; do
         case $arg in
                 i)
-                        declare -r sample=${OPTARG}
-                        out="${OPTARG##*/}"
+                # if the path to the folder is given with the / at the end, it can account for that now.
+                        if [[ ${OPTARG: -1} == "/" ]]; then
+                                declare -r sample="${OPTARG%/*}"
+                                path="${OPTARG%/*}"
+                                out="${path##*/}"
+                        else
+                                declare -r sample=${OPTARG}
+                                out="${OPTARG##*/}"
+                        fi
+                        printf "sample is ${sample} and\n out is ${out}"
                         ;;
                 r)
                         declare -r ref=${OPTARG}
@@ -97,7 +105,7 @@ module load gcc/9.3.0
 module load sra-toolkit
 
 ## put in a check for if the folder already exists, skip this
-if [[ ! -d ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} ]]; then
+if [[ ! -d "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" ]]; then
         fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} &
         PID=$!
 
@@ -111,13 +119,13 @@ cd ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} #move into the newley created dir
 
 # now we should have r1 and r2 (could be NA)
 
-fileArray=($sample*)
+fileArray=($out*)
     # echo "${fileArray[@]}"
     # Identifying the files since they can have different endings when dumped
 if  printf '%s\n' "${fileArray[@]}" | grep -E -i -q  "r1\.f*|_1\.f*|_r1_0.*|_1"; then
         r1=$(printf '%s\n' "${fileArray[@]}" | grep -E -i 'r1\.f*|_1\.f*|_r1_0.*|_1')
-elif [[ -e "${sample}.fastq" ]]; then #for a merged file, it gets treated as r1
-        r1="${sample}.fastq"
+elif [[ -e "${out}.fastq" ]]; then #for a merged file, it gets treated as r1
+        r1="${out}.fastq"
 else
         r1="NA"
 fi
