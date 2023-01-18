@@ -1,10 +1,7 @@
 #! /usr/bin/env bash
 # Pipeline to go from sra download to snp vcf or bcf to efficently use space
 
-script_name=$0
-script_full_path=$(dirname $0)
 
-# These are the files and variables that will be needed
 usage() { printf 'Varient Calling Pipleine V1
         USAGE
         
@@ -187,20 +184,17 @@ if [[ "$r1" != "NA" && "$r2" == "NA" ]]; then # If it is not paired reads
         #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), add unincluded to diff file 
         bwa mem ${ref} \
                 ${out}Trimmed/${out}_r1_trimmed.fastq \
-                -t ${ncores} | samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\
+                -t ${ncores} | samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - > ${out}MappedReads/${out}_mapped.bam 
 
-        samtools fastq tmp.bam | gzip > ${out}UnmappedReads/${out}_Single.fastq.gz
 fi
 
 if [[ "$r1" != "NA" && "$r2" != "NA" ]]; then # if paird
 
         bwa mem ${ref} ${out}Trimmed/${out}_r1_trimmed.fastq \
                 ${out}Trimmed/${out}_r2_trimmed.fastq -t ${ncores} |\
-                samtools view -b -h -F 4 -m ${len} -q ${qual} -U tmp.bam |\
+                samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - > ${out}MappedReads/${out}_mapped.bam
-
-        samtools fastq -c 6 tmp.bam -1 ${out}UnmappedReads/${out}_r1.fastq.gz -2 ${out}UnmappedReads/${out}_r2.fastq.gz -s /dev/null # deletes singleton readings
 
 fi
 
@@ -243,5 +237,8 @@ module load vcftools
 vcftools --vcf ${out}.vcf --keep-only-indels --recode --recode-INFO-all --out ${out}_indels-only.vcf
 # separate SNPs
 vcftools --vcf ${out}.vcf --remove-indels --recode --recode-INFO-all --out ${out}_snps-only.vcf
+
+echo "cleaning up"
+rm -r ~/scratch/Temp_WD/${out}*
 
 echo "script finished!"
