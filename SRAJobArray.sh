@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=4G
 #SBATCH --time=180
-#SBATCH --array=1:5
+#SBATCH --array=1-5
 ##SBATCH --array=1-2329%100
 # will uncomment ^ if the 5 test works
 
