@@ -214,16 +214,16 @@ module load picard
 module load samtools
 
 java -jar $EBROOTPICARD/picard.jar SortSam \
-      I=${sample}_mapped.bam \
-      O=${sample}_sorted.bam \
+      I=${out}_mapped.bam \
+      O=${out}_sorted.bam \
       SORT_ORDER=coordinate
 
 java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
-      I=${sample}_sorted.bam \
-      O=${sample}_sorted-md.bam \
-      M=${sample}-md_metrics.txt
+      I=${out}_sorted.bam \
+      O=${out}_sorted-md.bam \
+      M=${out}-md_metrics.txt
 
-samtools index ${sample}_sorted-md.bam
+samtools index ${out}_sorted-md.bam
 
 
 ###### Varient Calling ########
