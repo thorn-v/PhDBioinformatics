@@ -247,6 +247,6 @@ vcftools --vcf ${out}.vcf --keep-only-indels --recode --recode-INFO-all --out ${
 vcftools --vcf ${out}.vcf --remove-indels --recode --recode-INFO-all --out ${out}_snps-only.vcf
 
 echo "cleaning up"
-rm -r ~/scratch/Temp_WD/${out}*
+#rm -r ~/scratch/Temp_WD/${out}*
 
 echo "script finished!"
