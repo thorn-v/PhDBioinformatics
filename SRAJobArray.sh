@@ -9,6 +9,9 @@
 ##SBATCH --array=1-2329%100
 # will uncomment ^ if the 5 test works
 
+shopt -s expand_aliases
+source ~/.bash_aliases
+
 #config file for accessions
 config=~/scratch/config.txt
 
