@@ -5,13 +5,13 @@
 usage() { printf 'Varient Calling Pipleine V1
         USAGE
         
+        Assumes working on Compute Canada cluster!
+
         Takes downloaded .sra files and decompresses them,
         QC check them with fastp,
-        maps passed reads to the provided reference libary (assumes library has been established),
+        maps passed reads to the provided reference libary (assumes library has been established/indexed),
         calls varients,
-        more ...
-
-        Assumes you have fastp, BWA mem, sra-toolbox,    
+        filters varients into SNPs or Indels. 
 
         -i\tThe SRA accesson (folder that contains the Raw sequencing files) [REQUIRED]
         -r\tIndexed Sequence Reference library Folder path [REQUIRED]
@@ -20,21 +20,6 @@ usage() { printf 'Varient Calling Pipleine V1
 	-l\tMinimum Read Length (Default: 20)
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
-# Creating a simple command to save the settings used.
-#log() {	printf "Mapping settings for $(date):
-#	Log File:\t${log}
-#	Input folder:\t${folder}
-#	Output folder:\t${out}
-#	CPU Threads:\t${ncores}
-#	-------------------------------------\n"; exit 0;
-#}
-
-## add logging feature later
-
-#export -f Trimming
-#export -f FastpWrapper
-#export -f FileIdentificationInFunction
-#export -f FileExtractionInFunction
 
 # Default Values
 ncores=8
@@ -51,8 +36,8 @@ while getopts "i:r:l:n:o:h" arg; do
                                 path="${OPTARG%/*}"
                                 out="${path##*/}"
                         else
-                                declare -r sample=${OPTARG}
-                                out="${OPTARG##*/}"
+                                declare -r sample=${OPTARG} #sample is the path to the accession folder
+                                out="${OPTARG##*/}"     #out is just the accession
                         fi
                         printf "sample is ${sample} and\n out is ${out}"
                         ;;
@@ -60,7 +45,7 @@ while getopts "i:r:l:n:o:h" arg; do
                         declare -r ref=${OPTARG}
                         ;;
                 o)
-                        out=${OPTARG}
+                        out=${OPTARG} # legacy, may incorporate later - may remove, not advertised as an option
                         ;;
                 n)
                         declare -i ncores=${OPTARG}
@@ -100,11 +85,12 @@ fi
 
 
 #### Extract the fastq(s) ####
+# load the libraries needed
 module load StdEnv/2020
 module load gcc/9.3.0
 module load sra-toolkit
 
-## put in a check for if the folder already exists, skip this
+## put in a check for "if the folder already exists, skip this step"
 if [[ ! -d "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" ]]; then
         fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} &
         PID=$!
@@ -113,7 +99,7 @@ if [[ ! -d "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" ]]; then
         echo "done unpacking"
 fi
 echo "exists now"
-cd ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} #move into the newley created directory with the fastq file(s)
+cd ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} # move into the newley created directory with the fastq file(s)
 
 # find the newly created files since they could have different ways of denoting r1/r2
 
@@ -141,7 +127,8 @@ unset fileArray
 
 
 ######### QC and Trimming ###########
-## QC and Trims the fastq file(s) based on Sam Long's parameters 
+## QC and Trims the fastq file(s) for adapters, complexity, and quality windows - similar to timmomatic
+## default quality cutoff is 20 
 
 module load fastp
 mkdir ~/scratch/Temp_WD/${out}Trimmed
@@ -180,7 +167,6 @@ echo "done QC"
 module load bwa
 module load samtools
 mkdir ${out}MappedReads
-mkdir ${out}UnmappedReads
 
 if [[ "${r1}" == "NA" && "${r2}" == "NA" ]]; then  
         printf "${sample}\tno reads files found - manually check it out ("$(date +'%d/%m/%y %H+3:%M:%S')")" | tee -a ~/scratch/missingFiles.txt
@@ -207,6 +193,7 @@ if [[ "$r1" != "NA" && "$r2" != "NA" ]]; then # if paird
 fi
 
 echo "Done Mapping"
+
 ##### Processing ######
 
 cd ${out}MappedReads
@@ -214,14 +201,14 @@ module load picard
 module load samtools
 
 java -jar $EBROOTPICARD/picard.jar SortSam \
-      I=${out}_mapped.bam \
-      O=${out}_sorted.bam \
-      SORT_ORDER=coordinate
+      -I ${out}_mapped.bam \
+      -O ${out}_sorted.bam \
+      -SORT_ORDER coordinate
 
 java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
-      I=${out}_sorted.bam \
-      O=${out}_sorted-md.bam \
-      M=${out}-md_metrics.txt
+      -I ${out}_sorted.bam \
+      -O ${out}_sorted-md.bam \
+      -M ${out}-md_metrics.txt
 
 samtools index ${out}_sorted-md.bam
 
@@ -245,8 +232,5 @@ module load vcftools
 vcftools --vcf ${out}.vcf --keep-only-indels --recode --recode-INFO-all --out ${out}_indels-only.vcf
 # separate SNPs
 vcftools --vcf ${out}.vcf --remove-indels --recode --recode-INFO-all --out ${out}_snps-only.vcf
-
-echo "cleaning up"
-#rm -r ~/scratch/Temp_WD/${out}*
 
 echo "script finished!"
