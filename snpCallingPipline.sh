@@ -32,11 +32,11 @@ while getopts "i:r:l:n:o:h" arg; do
                 i)
                 # if the path to the folder is given with the / at the end, it can account for that now.
                         if [[ ${OPTARG: -1} == "/" ]]; then
-                                declare -r sample="${OPTARG%/*}"
+                                sample="${OPTARG%/*}"
                                 path="${OPTARG%/*}"
                                 out="${path##*/}"
                         else
-                                declare -r sample=${OPTARG} #sample is the path to the accession folder
+                                sample=${OPTARG} #sample is the path to the accession folder
                                 out="${OPTARG##*/}"     #out is just the accession
                         fi
                         printf "sample is ${sample} and\n out is ${out}"
@@ -92,10 +92,10 @@ module load sra-toolkit
 
 ## put in a check for "if the folder already exists, skip this step"
 if [[ ! -d "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" ]]; then
-        fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} &
-        PID=$!
+        fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} 
+        #PID=$!
 
-        wait "${PID}" #cannot move on until the sra is unpacked
+        #wait "${PID}" #cannot move on until the sra is unpacked
         echo "done unpacking"
 fi
 echo "exists now"
@@ -117,8 +117,8 @@ else
 fi
 
 # for r2
-if printf '%s\n' "${fileArray[@]}" | grep -E -i -q "r2\.f*|_2\.f*|_r2_0.*|2$"; then
-        r2=$(printf '%s\n' "${fileArray[@]}" | grep -E -i 'r2\.f*|_2\.f*|_r2_0.*|2$')
+if printf '%s\n' "${fileArray[@]}" | grep -E -i -q "r2\.f*|_2\.f*|_r2_0.*|_2$"; then
+        r2=$(printf '%s\n' "${fileArray[@]}" | grep -E -i 'r2\.f*|_2\.f*|_r2_0.*|_2$')
 else
         r2="NA"     
 fi
@@ -170,7 +170,7 @@ mkdir ${out}MappedReads
 
 if [[ "${r1}" == "NA" && "${r2}" == "NA" ]]; then  
         printf "${sample}\tno reads files found - manually check it out ("$(date +'%d/%m/%y %H+3:%M:%S')")" | tee -a ~/scratch/missingFiles.txt
-        exit 1;
+        exit 0;
 fi
 
 
