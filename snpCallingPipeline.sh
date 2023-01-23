@@ -160,6 +160,17 @@ else  # is a paired sample
                # --failed_out ${out}FailedQC/${sample}_failed.fastq;
 fi
 
+### add quality check here to yeet files with too few reads
+passed_read_num=$(cat ~/scratch/Fastp_Logs/${out}.json |\
+        python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["filtering_result"]["passed_filter_reads"])')
+
+if [[ $passed_read_num -lt 100000 ]]; then
+        echo "${out} contained less than 100K reads that passed QC (${passed_read_num} and has been Yeeted from the data set." |\
+        tee -a ~/scratch/tooFewReads.txt
+        echo "Exiting Script!"
+        exit 0
+fi
+
 echo "done QC"
 
 ###### Mapping ######
