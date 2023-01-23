@@ -16,15 +16,15 @@ usage() { printf 'Varient Calling Pipleine V1
         -i\tThe SRA accesson (folder that contains the Raw sequencing files) [REQUIRED]
         -r\tIndexed Sequence Reference library Folder path [REQUIRED]
 	-n\tNumber of CPU Threads to be used (Default: 8)
-        -q\tMinimum Mapping Quality (Default: 20)
-	-l\tMinimum Read Length (Default: 20)
+        -q\tMinimum Mapping Quality (Default: 30)
+	-l\tMinimum Read Length (Default: 30)
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 
 # Default Values
 ncores=8
-len=20
-qual=20
+len=30
+qual=30
 
 
 while getopts "i:r:l:n:o:h" arg; do
@@ -169,7 +169,7 @@ module load samtools
 mkdir ${out}MappedReads
 
 if [[ "${r1}" == "NA" && "${r2}" == "NA" ]]; then  
-        printf "${sample}\tno reads files found - manually check it out ("$(date +'%d/%m/%y %H+3:%M:%S')")" | tee -a ~/scratch/missingFiles.txt
+        printf "${sample}\tno reads files found - manually check it out ($(date +'%d/%m/%y %H+3:%M:%S'))\n" | tee -a ~/scratch/missingFiles.txt
         exit 0;
 fi
 
