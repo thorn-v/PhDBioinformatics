@@ -12,7 +12,7 @@ module load gcc/9.3.0
 module load sra-toolkit
 
 ## put in a check for "if the folder already exists, skip this step"
-for out in $1; do
+while read out; do
     if [[ ! -d "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" ]]; then
             fasterq-dump ~/Afumigatus_WGSA_SRAs/${out} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} 
             cd ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}
@@ -21,5 +21,5 @@ for out in $1; do
     else 
         echo "${out} exists already"
     fi
-done
+done <$1
 echo "done"
