@@ -165,8 +165,8 @@ passed_read_num=$(cat ~/scratch/Fastp_Logs/${out}.json |\
         python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["filtering_result"]["passed_filter_reads"])')
 
 if [[ $passed_read_num -lt 100000 ]]; then
-        echo "${out} contained less than 100K reads that passed QC (${passed_read_num} and has been Yeeted from the data set." |\
-        tee -a ~/scratch/tooFewReads.txt
+        printf "${out}\t${passed_read_num}\tcontained less than 100K reads that passed QC\n" |\
+        tee -a ~/scratch/removedAccessions.txt
         echo "Exiting Script!"
         exit 0
 fi
@@ -186,7 +186,7 @@ fi
 
 
 if [[ "$r1" != "NA" && "$r2" == "NA" ]]; then # If it is not paired reads
-        #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), add unincluded to diff file 
+        #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), send unincluded to null
         bwa mem ${ref} \
                 ${out}Trimmed/${out}_r1_trimmed.fastq \
                 -t ${ncores} | samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
@@ -209,7 +209,6 @@ echo "Done Mapping"
 
 cd ${out}MappedReads
 module load picard
-module load samtools
 
 java -jar $EBROOTPICARD/picard.jar SortSam \
       -I ${out}_mapped.bam \
@@ -223,25 +222,23 @@ java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
 
 samtools index ${out}_sorted-md.bam
 
+## second quality checkpoint - if the read depth is too low there is no point in continuing 
+genomeReadDepth=$(samtools depth -a ${out}_mapped.bam | awk '{sum+=$3} END {print sum/NR}')
+
+### JP suggests 50x
+
+if [[ $genomeReadDepth -lt 50 ]]; then
+        printf "${out}\t${genomeReadDepth}\tAverage read depth for inital map is less than 50\n" |\
+        tee -a ~/scratch/removedAccessions.txt
+        echo "Exiting Script!"
+        exit 0
+else
+        printf "Average sequence depth for ${out} is ${initialReadDepth}" |\
+        tee -a ${out}_info.log
+fi
+
 
 ###### Varient Calling ########
-module load python
-module load freebayes
 
-freebayes-parallel \
-   <(fasta_generate_regions.py ${ref}.fai 100000) ${ncores} \
-   -f ${ref} -p 1 ${out}_sorted-md.bam > ~/scratch/Raw_VCFs/${out}.vcf
-
-echo "done varient calling"
-####### Filter VCF ##########
-
-cd ~/scratch/Raw_VCFs
-module load htslib
-module load vcftools
-
-# separate indels
-vcftools --vcf ${out}.vcf --keep-only-indels --recode --recode-INFO-all --out ${out}_indels-only.vcf
-# separate SNPs
-vcftools --vcf ${out}.vcf --remove-indels --recode --recode-INFO-all --out ${out}_snps-only.vcf
 
 echo "script finished!"
