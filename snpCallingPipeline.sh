@@ -83,22 +83,23 @@ fi
 
 
 
-
+# # this step shoudnt need to happen now
 #### Extract the fastq(s) ####
-# load the libraries needed
-module load StdEnv/2020
-module load gcc/9.3.0
-module load sra-toolkit
+# # load the libraries needed
+# module load StdEnv/2020
+# module load gcc/9.3.0
+# module load sra-toolkit
 
-## put in a check for "if the folder already exists, skip this step"
-if [[ ! -d "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" ]]; then
-        fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} 
-        #PID=$!
+# ## put in a check for "if the folder already exists, skip this step"
+# if [[ ! -d "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" ]]; then
+#         fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} 
+#         #PID=$!
 
-        #wait "${PID}" #cannot move on until the sra is unpacked
-        echo "done unpacking"
-fi
-echo "exists now"
+#         #wait "${PID}" #cannot move on until the sra is unpacked
+#         echo "done unpacking"
+# fi
+
+# echo "exists now"
 cd ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} # move into the newley created directory with the fastq file(s)
 
 # find the newly created files since they could have different ways of denoting r1/r2
@@ -110,8 +111,8 @@ fileArray=($out*)
     # Identifying the files since they can have different endings when dumped
 if  printf '%s\n' "${fileArray[@]}" | grep -E -i -q  "r1\.f*|_1\.f*|_r1_0.*|_1"; then
         r1=$(printf '%s\n' "${fileArray[@]}" | grep -E -i 'r1\.f*|_1\.f*|_r1_0.*|_1')
-elif [[ -e "${out}.fastq" ]]; then #for a merged file, it gets treated as r1
-        r1="${out}.fastq"
+elif [[ -e "${out}.fastq.gz" ]]; then #for a merged file, it gets treated as r1
+        r1="${out}.fastq.gz"
 else
         r1="NA"
 fi
@@ -165,7 +166,7 @@ passed_read_num=$(cat ~/scratch/Fastp_Logs/${out}.json |\
         python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["filtering_result"]["passed_filter_reads"])')
 
 if [[ $passed_read_num -lt 100000 ]]; then
-        printf "${out}\t${passed_read_num}\tcontained less than 100K reads that passed QC\n" |\
+        printf "${out}\tnumReads\t${passed_read_num}\tcontained less than 100K reads that passed QC\n" |\
         tee -a ~/scratch/removedAccessions.txt
         echo "Exiting Script!"
         exit 0
@@ -189,7 +190,8 @@ if [[ "$r1" != "NA" && "$r2" == "NA" ]]; then # If it is not paired reads
         #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), send unincluded to null
         bwa mem ${ref} \
                 ${out}Trimmed/${out}_r1_trimmed.fastq \
-                -t ${ncores} | samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
+                -t ${ncores} -R "@RG\tID:${out}" |\
+                samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - > ${out}MappedReads/${out}_mapped.bam 
 
 fi
@@ -197,7 +199,8 @@ fi
 if [[ "$r1" != "NA" && "$r2" != "NA" ]]; then # if paird
 
         bwa mem ${ref} ${out}Trimmed/${out}_r1_trimmed.fastq \
-                ${out}Trimmed/${out}_r2_trimmed.fastq -t ${ncores} |\
+                ${out}Trimmed/${out}_r2_trimmed.fastq \
+                -t ${ncores}  -R "@RG\tID:${out}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - > ${out}MappedReads/${out}_mapped.bam
 
@@ -228,17 +231,26 @@ genomeReadDepth=$(samtools depth -a ${out}_mapped.bam | awk '{sum+=$3} END {prin
 ### JP suggests 50x
 
 if [[ $genomeReadDepth -lt 50 ]]; then
-        printf "${out}\t${genomeReadDepth}\tAverage read depth for inital map is less than 50\n" |\
+        printf "${out}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than 50\n" |\
         tee -a ~/scratch/removedAccessions.txt
-        echo "Exiting Script!"
+        echo "Exiting Script, Qual Too Low!"
         exit 0
 else
         printf "Average sequence depth for ${out} is ${initialReadDepth}" |\
-        tee -a ${out}_info.log
+        tee -a ~/scratch/gvcfLogs/${out}_info.log
+        mv ${out}_sorted-md.bam* FinalMappedReads
+        mv ${out}-md_metrics.txt FinalMappedReads
+
 fi
 
 
 ###### Varient Calling ########
+cd ~/scratch/FinalMappedReads
+module load gatk
 
+gatk --java-options "-Xmx4g" HaplotypeCaller -ERC GVCF \
+        -R ../Afumigatus_Reference/A_fumigatus_Af293/GCA_000002655.1/GCA_000002655.1_ASM265v1_genomic.fna \
+        -I SRR11425549_sorted-md.bam \
+        -O ~/scratch/GVCFs/SRR11425549.g.vcf 
 
 echo "script finished!"
