@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=8G
 #SBATCH --time=180
-#SBATCH --array=1:2317%100
+#SBATCH --array=1-2317%100
 
 #config file for accessions
 config=~/scratch/config.txt
