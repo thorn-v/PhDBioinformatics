@@ -227,17 +227,17 @@ samtools index ${out}_sorted-md.bam
 
 ## second quality checkpoint - if the read depth is too low there is no point in continuing 
 # adding the +0.5 makes it round bc it will trunicate the number to int so rounds
-genomeReadDepth=$(samtools depth -a ${out}_mapped.bam | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
+genomeReadDepth=$(samtools depth -a ${out}_sorted-md.bam | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
 
 ### JP suggests 50x
 
 if [[ $genomeReadDepth -lt 50 ]]; then
         printf "${out}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than 50\n" |\
         tee -a ~/scratch/removedAccessions.txt
-        echo "Exiting Script, Qual Too Low!"
+        echo "Exiting Script, Qual Too Low at ${genomeReadDepth}!"
         exit 0
 else
-        printf "Average sequence depth for ${out} is ${initialReadDepth}\n" |\
+        printf "Average sequence depth for ${out} is ${genomeReadDepth}\n" |\
         tee -a ~/scratch/gvcfLogs/${out}_info.log
         mv ${out}_sorted-md.bam* ~/scratch/FinalMappedReads
         mv ${out}-md_metrics.txt ~/scratch/FinalMappedReads
@@ -251,7 +251,7 @@ module load gatk
 
 gatk --java-options "-Xmx4g" HaplotypeCaller -ERC GVCF \
         -R ../Afumigatus_Reference/A_fumigatus_Af293/GCA_000002655.1/GCA_000002655.1_ASM265v1_genomic.fna \
-        -I SRR11425549_sorted-md.bam \
-        -O ~/scratch/GVCFs/SRR11425549.g.vcf 
+        -I ${out}_sorted-md.bam \
+        -O ~/scratch/GVCFs/${out}.g.vcf 
 
 echo "script finished!"
