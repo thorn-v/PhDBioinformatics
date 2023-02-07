@@ -226,7 +226,8 @@ java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
 samtools index ${out}_sorted-md.bam
 
 ## second quality checkpoint - if the read depth is too low there is no point in continuing 
-genomeReadDepth=$(samtools depth -a ${out}_mapped.bam | awk '{sum+=$3} END {print sum/NR}')
+# adding the +0.5 makes it round bc it will trunicate the number to int so rounds
+genomeReadDepth=$(samtools depth -a ${out}_mapped.bam | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
 
 ### JP suggests 50x
 
@@ -236,10 +237,10 @@ if [[ $genomeReadDepth -lt 50 ]]; then
         echo "Exiting Script, Qual Too Low!"
         exit 0
 else
-        printf "Average sequence depth for ${out} is ${initialReadDepth}" |\
+        printf "Average sequence depth for ${out} is ${initialReadDepth}\n" |\
         tee -a ~/scratch/gvcfLogs/${out}_info.log
-        mv ${out}_sorted-md.bam* FinalMappedReads
-        mv ${out}-md_metrics.txt FinalMappedReads
+        mv ${out}_sorted-md.bam* ~/scratch/FinalMappedReads
+        mv ${out}-md_metrics.txt ~/scratch/FinalMappedReads
 
 fi
 
