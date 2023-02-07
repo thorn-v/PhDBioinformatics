@@ -190,7 +190,7 @@ if [[ "$r1" != "NA" && "$r2" == "NA" ]]; then # If it is not paired reads
         #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), send unincluded to null
         bwa mem ${ref} \
                 ${out}Trimmed/${out}_r1_trimmed.fastq \
-                -t ${ncores} -R "@RG\tID:${out}" |\
+                -t ${ncores} -R "@RG\tID:${out}\tSM:${out}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - > ${out}MappedReads/${out}_mapped.bam 
 
@@ -200,7 +200,7 @@ if [[ "$r1" != "NA" && "$r2" != "NA" ]]; then # if paird
 
         bwa mem ${ref} ${out}Trimmed/${out}_r1_trimmed.fastq \
                 ${out}Trimmed/${out}_r2_trimmed.fastq \
-                -t ${ncores}  -R "@RG\tID:${out}" |\
+                -t ${ncores}  -R "@RG\tID:${out}\tSM:${out}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - > ${out}MappedReads/${out}_mapped.bam
 
