@@ -42,16 +42,16 @@ while getopts "i:r:l:n:o:h" arg; do
                         printf "sample is ${sample} and\n out is ${out}"
                         ;;
                 r)
-                        declare -r ref=${OPTARG}
+                        ref=${OPTARG}
                         ;;
                 o)
                         out=${OPTARG} # legacy, may incorporate later - may remove, not advertised as an option
                         ;;
                 n)
-                        declare -i ncores=${OPTARG}
+                        ncores=${OPTARG}
                         ;;
                 q)
-                        declare -i qual=${OPTARG} #may want to add a check for int after
+                        qual=${OPTARG} #may want to add a check for int after
                         ;;
                 l)
                         len=${OPTARG}
