@@ -250,7 +250,7 @@ cd ~/scratch/FinalMappedReads
 module load gatk
 
 gatk --java-options "-Xmx6g" HaplotypeCaller -ERC GVCF \
-        -R ../Afumigatus_Reference/A_fumigatus_Af293/GCA_000002655.1/GCA_000002655.1_ASM265v1_genomic.fna \
+        -R ${r} \
         -I ${out}_sorted-md.bam \
         -O ~/scratch/GVCFs/${out}.g.vcf 
 
