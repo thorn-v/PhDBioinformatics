@@ -10,24 +10,32 @@ usage() { printf 'Varient Calling Pipleine V1
         Takes downloaded .sra files and decompresses them,
         QC check them with fastp,
         maps passed reads to the provided reference libary (assumes library has been established/indexed),
-        calls varients,
-        filters varients into SNPs or Indels. 
+        calls global varients. 
+
+        Creates Temporary Working Directory ./Temp_WD
 
         -i\tThe SRA accesson (folder that contains the Raw sequencing files) [REQUIRED]
+        -u\tUnpack SRA file to fastq(s)? (Default T; Accepts T/F)
         -r\tIndexed Sequence Reference library Folder path [REQUIRED]
-	-n\tNumber of CPU Threads to be used (Default: 8)
+        -p\tPath (full) to Fastqs [REQUIRED]
+        -m\tMemory available (in Gigabytes, per core) (Defaults to 8G)
+        -w\tWhole Genome filtering (Default T; Accepts T/F)
+	-n\tNumber of CPU Threads to be used (Default: 1)
         -q\tMinimum Mapping Quality (Default: 30)
 	-l\tMinimum Read Length (Default: 30)
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 
 # Default Values
-ncores=8
+ncores=1
 len=30
 qual=30
+unpack="T"
+workdir=pwd
+wgsFiltering="T"
+mem=8
 
-
-while getopts "i:r:l:n:o:h" arg; do
+while getopts "i:u:r:p:m:l:w:n:o:h" arg; do
         case $arg in
                 i)
                 # if the path to the folder is given with the / at the end, it can account for that now.
@@ -41,11 +49,23 @@ while getopts "i:r:l:n:o:h" arg; do
                         fi
                         printf "sample is ${sample} and\n out is ${out}"
                         ;;
+                u)
+                        unpack=${OPTARG}
+                        ;;
                 r)
                         ref=${OPTARG}
                         ;;
+                p)
+                        fastqsPath=${OPTARG}
+                        ;;
+                m)
+                        mem=${OPTARG}
+                        ;;
                 o)
                         out=${OPTARG} # legacy, may incorporate later - may remove, not advertised as an option
+                        ;;
+                w)
+                        wgsFiltering=${OPTARG} #should add check for T/F compliance
                         ;;
                 n)
                         ncores=${OPTARG}
@@ -81,26 +101,29 @@ if [[ -z "${ref}" ]]; then
         exit 1;
 fi
 
+if [[ -z "${fastqsPath}" ]]; then
 
+        printf '\nMissing required input - Please provide Reference Genome Library\n\nUse -h for usage help\n'
+        exit 1;
+fi
 
-# # this step shoudnt need to happen now
 #### Extract the fastq(s) ####
-# # load the libraries needed
-# module load StdEnv/2020
-# module load gcc/9.3.0
-# module load sra-toolkit
+mkdir -p ${fastqsPath} # incase it does not already exist
 
-# ## put in a check for "if the folder already exists, skip this step"
-# if [[ ! -d "~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}" ]]; then
-#         fasterq-dump ${sample} -O ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} 
-#         #PID=$!
+# load some libraries needed
+module load StdEnv/2020
+module load gcc/9.3.0
+module load sra-toolkit
 
-#         #wait "${PID}" #cannot move on until the sra is unpacked
-#         echo "done unpacking"
-# fi
-
+if [[ ${unpack} == "T"]]; then
+## put in a check for "if the folder already exists (i.e. they messed up the -u), skip this step"
+        if [[ ! -d "${fastqsPath}/${out}" ]]; then
+                fasterq-dump ${sample} -O ${fastqsPath}/${out} 
+#               echo "done unpacking"
+        fi
+fi
 # echo "exists now"
-cd ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out} # move into the newley created directory with the fastq file(s)
+cd ${fastqsPath}/${out} # move into the newley created directory with the fastq file(s)
 
 # find the newly created files since they could have different ways of denoting r1/r2
 
@@ -132,46 +155,49 @@ unset fileArray
 ## default quality cutoff is 20 
 
 module load fastp
-mkdir ~/scratch/Temp_WD/${out}Trimmed
-cd ~/scratch/Temp_WD
+mkdir -p ${workdir}/Temp_WD/${out}Trimmed
+mkdir -p ${workdir}/Fastp_Logs # will only make it if not already made (so needed for the first one)
+cd ${workdir}/Temp_WD
 
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
-        fastp -i ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}/${r1} -w ${ncores} \
+        fastp -i ${fastqsPath}/${out}/${r1} -w ${ncores} \
                 --out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
                 --low_complexity_filter \
                 -q ${qual} --cut_right --cut_front \
                 --length_required $len \
-                --html ~/scratch/Fastp_Logs/${out}.html \
-                --json ~/scratch/Fastp_Logs/${out}.json;
+                --html ${workdir}/Fastp_Logs/${out}.html \
+                --json ${workdir}/Fastp_Logs/${out}.json;
 
 else  # is a paired sample
 		
-        fastp -i ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}/${r1} \
-                -I ~/scratch/Afumigatus_WGSA_Raw_Fastqs/${out}/${r2} -w ${ncores} \
+        fastp -i ${fastqsPath}/${out}/${r1} \
+                -I ${fastqsPath}/${out}/${r2} -w ${ncores} \
 		--out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
 		--out2 ${out}Trimmed/${out}_r2_trimmed.fastq \
                 --detect_adapter_for_pe --low_complexity_filter \
                 --cut_right --cut_front -q $qual \
                 --length_required $len \
-                --html ~/scratch/Fastp_Logs/${out}.html \
-                --json ~/scratch/Fastp_Logs/${out}.json; 
+                --html ${workdir}/Fastp_Logs/${out}.html \
+                --json ${workdir}/Fastp_Logs/${out}.json; 
                # --unpaired1 ${out}Trimmed/${sample}_u1.fastq \
                # --unpaired2 ${out}Trimmed/${sample}_u2.fastq\
-               # --failed_out ${out}FailedQC/${sample}_failed.fastq;
+               # --failed_out ${out}FailedQC/${sample}_failed.fastq; 
+               # don't care about these for this purpose currently ^
 fi
 
 ### add quality check here to yeet files with too few reads
-passed_read_num=$(cat ~/scratch/Fastp_Logs/${out}.json |\
-        python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["filtering_result"]["passed_filter_reads"])')
+if [[ ${wgsFiltering} == "T" ]]; then
+        passed_read_num=$(cat ${workdir}/Fastp_Logs/${out}.json |\
+                python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["filtering_result"]["passed_filter_reads"])')
 
-if [[ $passed_read_num -lt 100000 ]]; then
-        printf "${out}\tnumReads\t${passed_read_num}\tcontained less than 100K reads that passed QC\n" |\
-        tee -a ~/scratch/removedAccessions.txt
-        echo "Exiting Script!"
-        exit 0
+        if [[ $passed_read_num -lt 100000 ]]; then
+                printf "${out}\tnumReads\t${passed_read_num}\tcontained less than 100K reads that passed QC\n" |\
+                tee -a ${workdir}/removedAccessions.txt
+                echo "Exiting Script!"
+                exit 0
+        fi
 fi
-
 echo "done QC"
 
 ###### Mapping ######
@@ -181,7 +207,7 @@ module load samtools
 mkdir ${out}MappedReads
 
 if [[ "${r1}" == "NA" && "${r2}" == "NA" ]]; then  
-        printf "${sample}\tno reads files found - manually check it out ($(date +'%d/%m/%y %H+3:%M:%S'))\n" | tee -a ~/scratch/missingFiles.txt
+        printf "${sample}\tno reads files found - manually check it out ($(date +'%d/%m/%y %H+3:%M:%S'))\n" | tee -a ${workdir}/missingFiles.txt
         exit 0;
 fi
 
@@ -229,29 +255,39 @@ samtools index ${out}_sorted-md.bam
 # adding the +0.5 makes it round bc it will trunicate the number to int so rounds
 genomeReadDepth=$(samtools depth -a ${out}_sorted-md.bam | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
 
-### JP suggests 50x
+mkdir -p ${workdir}/FinalMappedReads
 
-if [[ $genomeReadDepth -lt 50 ]]; then
-        printf "${out}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than 50\n" |\
-        tee -a ~/scratch/removedAccessions.txt
-        echo "Exiting Script, Qual Too Low at ${genomeReadDepth}!"
-        exit 0
-else
+if [[ ${wgsFiltering} == "T" ]]; then
+        ### JP suggests 50x
+        if [[ $genomeReadDepth -lt 50 ]]; then
+                printf "${out}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than 50\n" |\
+                tee -a ${workdir}/removedAccessions.txt
+                echo "Exiting Script, Qual Too Low at ${genomeReadDepth}!"
+                exit 0
+        else
+                printf "Average sequence depth for ${out} is ${genomeReadDepth}\n" |\
+                tee -a ${workdir}/gvcfs_depths.info
+                mv ${out}_sorted-md.bam* ${workdir}/FinalMappedReads
+                mv ${out}-md_metrics.txt ${workdir}/FinalMappedReads
+        fi
+
+else # I still want to know the depts even if we don't use a cut-off
         printf "Average sequence depth for ${out} is ${genomeReadDepth}\n" |\
-        tee -a ~/scratch/gvcfLogs/${out}_info.log
-        mv ${out}_sorted-md.bam* ~/scratch/FinalMappedReads
-        mv ${out}-md_metrics.txt ~/scratch/FinalMappedReads
-
+        tee -a ${workdir}/gvcfs_depts.info
+        mv ${out}_sorted-md.bam* ${workdir}/FinalMappedReads
+        mv ${out}-md_metrics.txt ${workdir}/FinalMappedReads   
 fi
 
 
 ###### Varient Calling ########
-cd ~/scratch/FinalMappedReads
+mkdir -p ${workdir}/GVCFs
+cd ${workdir}/FinalMappedReads
 module load gatk
+javamem=$((${mem}/2)) #need 
 
-gatk --java-options "-Xmx6g" HaplotypeCaller -ERC GVCF \
+gatk --java-options "-Xmx${javamem}g" HaplotypeCaller -ERC GVCF \
         -R ${r} \
         -I ${out}_sorted-md.bam \
-        -O ~/scratch/GVCFs/${out}.g.vcf 
+        -O ${workdir}/GVCFs/${out}.g.vcf 
 
 echo "script finished!"
