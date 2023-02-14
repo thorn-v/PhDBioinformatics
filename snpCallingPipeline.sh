@@ -31,7 +31,7 @@ ncores=1
 len=30
 qual=30
 unpack="T"
-workdir=pwd
+workdir=$(pwd)
 wgsFiltering="T"
 mem=8
 
