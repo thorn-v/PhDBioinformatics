@@ -103,7 +103,7 @@ fi
 
 if [[ -z "${fastqsPath}" ]]; then
 
-        printf '\nMissing required input - Please provide Reference Genome Library\n\nUse -h for usage help\n'
+        printf '\nMissing required input - Please provide fastq library path (does not need to exist)\n\nUse -h for usage help\n'
         exit 1;
 fi
 
