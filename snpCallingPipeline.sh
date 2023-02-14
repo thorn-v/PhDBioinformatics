@@ -119,6 +119,7 @@ if [[ ${unpack} == "T"]]; then
 ## put in a check for "if the folder already exists (i.e. they messed up the -u), skip this step"
         if [[ ! -d "${fastqsPath}/${out}" ]]; then
                 fasterq-dump ${sample} -O ${fastqsPath}/${out} 
+                gzip ${fastqsPath}/${out}/*
 #               echo "done unpacking"
         fi
 fi
