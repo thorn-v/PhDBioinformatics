@@ -287,7 +287,7 @@ module load gatk
 javamem=$((${mem}/2)) #need 
 
 gatk --java-options "-Xmx${javamem}g" HaplotypeCaller -ERC GVCF \
-        -R ${r} \
+        -R ${ref} \
         -I ${out}_sorted-md.bam \
         -O ${workdir}/GVCFs/${out}.g.vcf 
 
