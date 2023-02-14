@@ -115,12 +115,12 @@ module load StdEnv/2020
 module load gcc/9.3.0
 module load sra-toolkit
 
-if [[ ${unpack} == "T"]]; then
-## put in a check for "if the folder already exists (i.e. they messed up the -u), skip this step"
+if [[ ${unpack} == "T" ]]; then
+        ## put in a check for "if the folder already exists (i.e. they messed up the -u), skip this step"
         if [[ ! -d "${fastqsPath}/${out}" || -z $(ls ${fastqsPath}/${out}) ]]; then
                 fasterq-dump ${sample} -O ${fastqsPath}/${out} 
                 gzip ${fastqsPath}/${out}/*
-#               echo "done unpacking"
+                # echo "done unpacking"
         fi
 fi
 # echo "exists now"
