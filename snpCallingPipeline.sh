@@ -80,6 +80,7 @@ while getopts "i:u:r:p:m:l:w:n:o:h:f" arg; do
                         ;;
                 p)
                         ploidy=${OPTARG}
+                        ;;
                 h | *)
                         usage
                         exit 0
