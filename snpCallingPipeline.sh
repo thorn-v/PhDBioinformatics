@@ -37,7 +37,7 @@ wgsFiltering="T"
 mem=8
 ploidy=1
 
-while getopts "i:u:r:p:m:l:w:n:o:h:f" arg; do
+while getopts "i:u:r:f:m:l:w:n:o:p:h" arg; do
         case $arg in
                 i)
                 # if the path to the folder is given with the / at the end, it can account for that now.
@@ -103,7 +103,7 @@ fi
 
 if [[ -z "${fastqsPath}" ]]; then
 
-        printf '\nMissing required input - Please provide fastq library path (does not need to exist)\n\nUse -h for usage help\n'
+        printf '\nMissing required input ${fastqsPath} - Please provide fastq library path (does not need to exist)\n\nUse -h for usage help\n'
         exit 1;
 fi
 
