@@ -295,7 +295,6 @@ javamem=$((${mem}/2)) #need
 gatk --java-options "-Xmx${javamem}g" HaplotypeCaller \
         -ERC GVCF \
         -ploidy ${ploidy} \
-        -G Standard \
         -G AS_Standard \
         -R ${ref} \
         -I ${out}_sorted-md.bam \
