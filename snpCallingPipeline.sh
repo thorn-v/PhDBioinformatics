@@ -2,14 +2,14 @@
 # Pipeline to go from sra download to snp vcf or bcf to efficently use space
 
 
-usage() { printf 'Varient Calling Pipleine V1
+usage() { printf 'Varient Calling Pipleine V1.1
         USAGE
         
         Assumes working on Compute Canada cluster!
 
         Takes downloaded .sra files and decompresses them,
         QC check them with fastp,
-        maps passed reads to the provided reference libary (assumes library has been established/indexed),
+        maps passed reads to the provided reference libary (assumes library has been established/indexed bwa and gatk dict/index),
         calls global varients. 
 
         Creates Temporary Working Directory ./Temp_WD
@@ -17,9 +17,10 @@ usage() { printf 'Varient Calling Pipleine V1
         -i\tThe SRA accesson (folder that contains the Raw sequencing files) [REQUIRED]
         -u\tUnpack SRA file to fastq(s)? (Default T; Accepts T/F)
         -r\tIndexed Sequence Reference library Folder path [REQUIRED]
-        -p\tPath (full) to Fastqs [REQUIRED]
+        -f\tPath (full) to Fastqs [REQUIRED]
         -m\tMemory available (in Gigabytes, per core) (Defaults to 8G)
-        -w\tWhole Genome filtering (Default T; Accepts T/F)
+        -w\tWhole Genome filtering (Default T; Accepts T/F) (discards accessions with <10k qc passed reads and average WG coverage of <50) 
+        -p)\tPloidy (Defaults to 1)
 	-n\tNumber of CPU Threads to be used (Default: 1)
         -q\tMinimum Mapping Quality (Default: 30)
 	-l\tMinimum Read Length (Default: 30)
@@ -34,8 +35,9 @@ unpack="T"
 workdir=$(pwd)
 wgsFiltering="T"
 mem=8
+ploidy=1
 
-while getopts "i:u:r:p:m:l:w:n:o:h" arg; do
+while getopts "i:u:r:p:m:l:w:n:o:h:f" arg; do
         case $arg in
                 i)
                 # if the path to the folder is given with the / at the end, it can account for that now.
@@ -55,7 +57,7 @@ while getopts "i:u:r:p:m:l:w:n:o:h" arg; do
                 r)
                         ref=${OPTARG}
                         ;;
-                p)
+                f)
                         fastqsPath=${OPTARG}
                         ;;
                 m)
@@ -76,6 +78,8 @@ while getopts "i:u:r:p:m:l:w:n:o:h" arg; do
                 l)
                         len=${OPTARG}
                         ;;
+                p)
+                        ploidy=${OPTARG}
                 h | *)
                         usage
                         exit 0
@@ -119,8 +123,9 @@ if [[ ${unpack} == "T" ]]; then
         ## put in a check for "if the folder already exists (i.e. they messed up the -u), skip this step"
         if [[ ! -d "${fastqsPath}/${out}" || -z $(ls ${fastqsPath}/${out}) ]]; then
                 fasterq-dump ${sample} -O ${fastqsPath}/${out} 
+                echo "done unpack"
                 gzip ${fastqsPath}/${out}/*
-                # echo "done unpacking"
+                echo "done gzip"
         fi
 fi
 # echo "exists now"
@@ -286,9 +291,14 @@ cd ${workdir}/FinalMappedReads
 module load gatk
 javamem=$((${mem}/2)) #need 
 
-gatk --java-options "-Xmx${javamem}g" HaplotypeCaller -ERC GVCF \
+gatk --java-options "-Xmx${javamem}g" HaplotypeCaller \
+        -ERC GVCF \
+        -ploidy ${ploidy} \
+        -G Standard \
+        -G AS_Standard \
         -R ${ref} \
         -I ${out}_sorted-md.bam \
+        -bamout ${out}_asmbl_hap.bam \
         -O ${workdir}/GVCFs/${out}.g.vcf 
 
-echo "script finished!"
+echo "script finished! :)"
