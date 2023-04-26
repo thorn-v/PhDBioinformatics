@@ -1,7 +1,9 @@
 ##Comparison.pl
 my %hash;
 my $r='';
-open VCF,"veronica/Documents/School/McMaster/OtherSoftware/mt_all_noRoot.min4.fasta" or die "Can't open file '$file' for read. $!";
+open VCF, "/Users/veronica/Documents/School/McMaster/OtherSoftware/mt_all_noRoot.min4.fasta" or die 
+"Can't open file 
+'$file' for read. $!";
 for $rec (<VCF>){
     chomp($rec);
     if($rec=~/>(.*)$/){
@@ -1878,7 +1880,8 @@ my @arr=();
 $len=length($hash{$arr[0]});
 my @a=();
 my @b=();
-open O,"veronica/Documents/School/McMaster/PhDBioinformtics/distance_matrix_no_root.txt" or die "Can't open file '$file' for read. $!";
+open O,">>","/Users/veronica/Documents/School/McMaster/OtherSoftware/distance_pairwise.txt" or die "Can't 
+open file '$file' for read. $!";
 print O "\t";
 for $k(0..1859 ){print O $arr[$k],"\t";}
 print O "\n";
