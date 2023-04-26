@@ -95,11 +95,6 @@ if [[ -z "${sample}" ]]; then
         exit 1;
 fi
 
-if [[ ! -d "${sample}" ]]; then #checks that the sample is a folder and not the .sra file
-        printf '\nPlease provide a Directory for input SRA\n\nUse -h for usage help\n'
-        exit 1;
-fi
-
 if [[ -z "${ref}" ]]; then
 
         printf '\nMissing required input - Please provide Reference Genome Library\n\nUse -h for usage help\n'
@@ -122,6 +117,11 @@ module load sra-toolkit
 
 if [[ ${unpack} == "T" ]]; then
         ## put in a check for "if the folder already exists (i.e. they messed up the -u), skip this step"
+        if [[ ! -d "${sample}" ]]; then #checks that the sample is a folder and not the .sra file
+                printf '\nPlease provide a Directory for input SRA\n\nUse -h for usage help\n'
+                exit 1;
+        fi
+
         if [[ ! -d "${fastqsPath}/${out}" || -z $(ls ${fastqsPath}/${out}) ]]; then
                 fasterq-dump ${sample} -O ${fastqsPath}/${out} 
                 echo "done unpack"
