@@ -26,6 +26,8 @@ usage() { printf 'Varient Calling Pipleine V1.1
 	-l\tMinimum Read Length (Default: 30)
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
+# TODO: Add k option - bwa mem defults to k=20
+
 
 # Default Values
 ncores=1
