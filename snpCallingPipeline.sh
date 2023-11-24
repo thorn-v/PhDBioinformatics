@@ -19,7 +19,7 @@ usage() { printf 'Varient Calling Pipleine V1.1
         -r\tIndexed Sequence Reference library Folder path [REQUIRED]
         -f\tPath (full) to Fastqs [REQUIRED]
         -m\tMemory available (in Gigabytes, per core) (Defaults to 8G)
-        -w\tWhole Genome filtering (Default T; Accepts T/F) (discards accessions with <10k qc passed reads and average WG coverage of <50) 
+        -w\tWhole Genome filtering (Default T; Accepts T/F) (discards accessions with <1M qc passed reads and average WG coverage of <20) 
         -p)\tPloidy (Defaults to 1)
 	-n\tNumber of CPU Threads to be used (Default: 1)
         -q\tMinimum Mapping Quality (Default: 30)
@@ -171,7 +171,7 @@ cd ${workdir}/Temp_WD
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
         fastp -i ${fastqsPath}/${out}/${r1} -w ${ncores} \
-                --out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
+                --out1 ${out}Trimmed/${out}_r1_trimmed.fastq.gz \
                 --low_complexity_filter \
                 -q ${qual} --cut_right --cut_front \
                 --length_required $len \
@@ -182,8 +182,8 @@ else  # is a paired sample
 		
         fastp -i ${fastqsPath}/${out}/${r1} \
                 -I ${fastqsPath}/${out}/${r2} -w ${ncores} \
-		--out1 ${out}Trimmed/${out}_r1_trimmed.fastq \
-		--out2 ${out}Trimmed/${out}_r2_trimmed.fastq \
+		--out1 ${out}Trimmed/${out}_r1_trimmed.fast.gz \
+		--out2 ${out}Trimmed/${out}_r2_trimmed.fastq.gz \
                 --detect_adapter_for_pe --low_complexity_filter \
                 --cut_right --cut_front -q $qual \
                 --length_required $len \
@@ -200,8 +200,8 @@ if [[ ${wgsFiltering} == "T" ]]; then
         passed_read_num=$(cat ${workdir}/Fastp_Logs/${out}.json |\
                 python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["filtering_result"]["passed_filter_reads"])')
 
-        if [[ $passed_read_num -lt 100000 ]]; then
-                printf "${out}\tnumReads\t${passed_read_num}\tcontained less than 100K reads that passed QC\n" |\
+        if [[ $passed_read_num -lt 1000000 ]]; then
+                printf "${out}\tnumReads\t${passed_read_num}\tcontained less than 1M reads that passed QC\n" |\
                 tee -a ${workdir}/removedAccessions.txt
                 echo "Exiting Script!"
                 exit 0
@@ -224,7 +224,7 @@ fi
 if [[ "$r1" != "NA" && "$r2" == "NA" ]]; then # If it is not paired reads
         #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), send unincluded to null
         bwa mem ${ref} \
-                ${out}Trimmed/${out}_r1_trimmed.fastq \
+                ${out}Trimmed/${out}_r1_trimmed.fastq.gz \
                 -t ${ncores} -R "@RG\tID:${out}\tSM:${out}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - > ${out}MappedReads/${out}_mapped.bam 
@@ -233,8 +233,8 @@ fi
 
 if [[ "$r1" != "NA" && "$r2" != "NA" ]]; then # if paird
 
-        bwa mem ${ref} ${out}Trimmed/${out}_r1_trimmed.fastq \
-                ${out}Trimmed/${out}_r2_trimmed.fastq \
+        bwa mem ${ref} ${out}Trimmed/${out}_r1_trimmed.fastq.gz \
+                ${out}Trimmed/${out}_r2_trimmed.fastq.gz \
                 -t ${ncores}  -R "@RG\tID:${out}\tSM:${out}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - > ${out}MappedReads/${out}_mapped.bam
@@ -268,7 +268,7 @@ mkdir -p ${workdir}/FinalMappedReads
 
 if [[ ${wgsFiltering} == "T" ]]; then
         ### JP suggests 50x
-        if [[ $genomeReadDepth -lt 50 ]]; then
+        if [[ $genomeReadDepth -lt 20 ]]; then
                 printf "${out}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than 50\n" |\
                 tee -a ${workdir}/removedAccessions.txt
                 echo "Exiting Script, Qual Too Low at ${genomeReadDepth}!"
