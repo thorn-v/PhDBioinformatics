@@ -2,26 +2,30 @@
 # Pipeline to go from sra download to snp vcf or bcf to efficently use space
 
 
-usage() { printf 'Varient Calling Pipleine V1.1
+usage() { printf 'Varient Calling Pipleine V1.3
         USAGE
         
         Assumes working on Compute Canada cluster!
+        Made to be easily run in a job array
+        Assumes Reference library has been indexed with BWA
 
         Takes downloaded .sra files and decompresses them,
         QC check them with fastp,
         maps passed reads to the provided reference libary (assumes library has been established/indexed bwa and gatk dict/index),
         calls global varients. 
 
-        Creates Temporary Working Directory ./Temp_WD
+        Creates Temporary Working Directory ./${out}_Temp_WD
 
         -i\tThe SRA accesson (folder that contains the Raw sequencing files) [REQUIRED]
         -u\tUnpack SRA file to fastq(s)? (Default T; Accepts T/F)
         -r\tIndexed Sequence Reference library Folder path [REQUIRED]
         -f\tPath (full) to Fastqs [REQUIRED]
         -m\tMemory available (in Gigabytes, per core) (Defaults to 8G)
-        -w\tWhole Genome filtering (Default T; Accepts T/F) (discards accessions with <1M qc passed reads and average WG coverage of <20) 
-        -p)\tPloidy (Defaults to 1)
-	-n\tNumber of CPU Threads to be used (Default: 1)
+        -K\tKeep intermediate steps (trimmed fastq(s), interim BAM alignments; Final alignments are kept regardless) (Default does not keep them for space constraints, no arguments)
+        -w\tFinal alignment average read depth filtering (Default 20; Accepts integer, 0 will disable filter) (discards accessions with <1M qc passed reads and average WG coverage of <20) 
+        -n\tTrimmed read quantity filter (Default 1000000, accepts integer, 0 disables filter)
+        -p\tPloidy (Defaults to 1)
+	-c\tNumber of CPU Threads to be used (Default: 1)
         -q\tMinimum Mapping Quality (Default: 30)
 	-l\tMinimum Read Length (Default: 30)
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
@@ -35,11 +39,14 @@ len=30
 qual=30
 unpack="T"
 workdir=$(pwd)
-wgsFiltering="T"
+wgsCutOff=20
+readsCutOff=1000000
 mem=8
 ploidy=1
+keepTemp=F
 
-while getopts "i:u:r:f:m:l:w:n:o:p:h" arg; do
+
+while getopts "i:u:r:f:m:Kw:n:p:c:o:q:l:h" arg; do
         case $arg in
                 i)
                 # if the path to the folder is given with the / at the end, it can account for that now.
@@ -65,13 +72,19 @@ while getopts "i:u:r:f:m:l:w:n:o:p:h" arg; do
                 m)
                         mem=${OPTARG}
                         ;;
+                K)
+                        keepTemp="T"
+                        ;;
+                n)
+                        readsCutOff=${OPTARG}
+                        ;;
                 o)
                         out=${OPTARG} # legacy, may incorporate later - may remove, not advertised as an option
                         ;;
                 w)
-                        wgsFiltering=${OPTARG} #should add check for T/F compliance
+                        wgsCutOff=${OPTARG} #should add check for T/F compliance
                         ;;
-                n)
+                c)
                         ncores=${OPTARG}
                         ;;
                 q)
@@ -164,9 +177,9 @@ unset fileArray
 ## default quality cutoff is 20 
 
 module load fastp
-mkdir -p ${workdir}/Temp_WD/${out}Trimmed
+mkdir -p ${workdir}/${out}_Temp_WD/${out}Trimmed
 mkdir -p ${workdir}/Fastp_Logs # will only make it if not already made (so needed for the first one)
-cd ${workdir}/Temp_WD
+cd ${workdir}/${out}_Temp_WD
 
 if [ "$r2" == "NA" ]; then # If not a paired sample...
 
@@ -196,12 +209,12 @@ else  # is a paired sample
 fi
 
 ### add quality check here to yeet files with too few reads
-if [[ ${wgsFiltering} == "T" ]]; then
+if [[ ${readsCutOff} -gt 0 ]]; then
         passed_read_num=$(cat ${workdir}/Fastp_Logs/${out}.json |\
                 python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["filtering_result"]["passed_filter_reads"])')
 
-        if [[ $passed_read_num -lt 1000000 ]]; then
-                printf "${out}\tnumReads\t${passed_read_num}\tcontained less than 1M reads that passed QC\n" |\
+        if [[ $passed_read_num -lt ${readsCutOff} ]]; then
+                printf "${out}\tnumReads\t${passed_read_num}\tcontained less than ${readsCutOff} reads that passed QC\t`date +"%Y-%m-%d %T"`\n" |\
                 tee -a ${workdir}/removedAccessions.txt
                 echo "Exiting Script!"
                 exit 0
@@ -266,10 +279,10 @@ genomeReadDepth=$(samtools depth -a ${out}_sorted-md.bam | awk '{sum+=$3} END {p
 
 mkdir -p ${workdir}/FinalMappedReads
 
-if [[ ${wgsFiltering} == "T" ]]; then
+if [[ ${wgsCutOff} -gt 0 ]]; then
         ### JP suggests 50x
-        if [[ $genomeReadDepth -lt 20 ]]; then
-                printf "${out}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than 50\n" |\
+        if [[ $genomeReadDepth -lt ${wgsCutOff} ]]; then
+                printf "${out}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than ${wgsCutOff}\t`date +"%Y-%m-%d %T"`\n" |\
                 tee -a ${workdir}/removedAccessions.txt
                 echo "Exiting Script, Qual Too Low at ${genomeReadDepth}!"
                 exit 0
@@ -279,7 +292,7 @@ if [[ ${wgsFiltering} == "T" ]]; then
                 mv ${out}_sorted-md.bam* ${workdir}/FinalMappedReads
                 mv ${out}-md_metrics.txt ${workdir}/FinalMappedReads
         fi
-
+#i.e. no cut off so keep everything
 else # I still want to know the depts even if we don't use a cut-off
         printf "Average sequence depth for ${out} is ${genomeReadDepth}\n" |\
         tee -a ${workdir}/gvcfs_depts.info
@@ -301,5 +314,10 @@ gatk --java-options "-Xmx${javamem}g" HaplotypeCaller \
         -I ${out}_sorted-md.bam \
         -bamout ${out}_asmbl_hap.bam \
         -O ${workdir}/GVCFs/${out}.g.vcf 
+
+## Clean up
+if [[ ${keepTemp} == "F" ]]; then
+        rm -r ${workdir}/${out}_Temp_WD
+fi
 
 echo "script finished! :)"
