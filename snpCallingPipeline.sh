@@ -16,10 +16,10 @@ usage() { printf 'Varient Calling Pipleine V1.3
 
         Creates Temporary Working Directory ./${out}_Temp_WD
 
-        -i\tThe SRA accesson (folder that contains the Raw sequencing files) [REQUIRED]
+        -i\tThe SRA accesson (folder that contains the Raw SRA file from prefetch) [REQUIRED]
         -u\tUnpack SRA file to fastq(s)? (Default T; Accepts T/F)
         -r\tIndexed Sequence Reference library Folder path [REQUIRED]
-        -f\tPath (full) to Fastqs [REQUIRED]
+        -f\tPath (full) to Fastqs (does not need to exist yet) [REQUIRED]
         -m\tMemory available (in Gigabytes, per core) (Defaults to 8G)
         -K\tKeep intermediate steps (trimmed fastq(s), interim BAM alignments; Final alignments are kept regardless) (Default does not keep them for space constraints, no arguments)
         -w\tFinal alignment average read depth filtering (Default 20; Accepts integer, 0 will disable filter) (discards accessions with <1M qc passed reads and average WG coverage of <20) 
@@ -285,6 +285,10 @@ if [[ ${wgsCutOff} -gt 0 ]]; then
                 printf "${out}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than ${wgsCutOff}\t`date +"%Y-%m-%d %T"`\n" |\
                 tee -a ${workdir}/removedAccessions.txt
                 echo "Exiting Script, Qual Too Low at ${genomeReadDepth}!"
+                ## Clean up
+                if [[ ${keepTemp} == "F" ]]; then
+                        rm -r ${workdir}/${out}_Temp_WD
+                fi
                 exit 0
         else
                 printf "Average sequence depth for ${out} is ${genomeReadDepth}\n" |\
