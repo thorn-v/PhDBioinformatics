@@ -195,7 +195,7 @@ else  # is a paired sample
 		
         fastp -i ${fastqsPath}/${out}/${r1} \
                 -I ${fastqsPath}/${out}/${r2} -w ${ncores} \
-		--out1 ${out}Trimmed/${out}_r1_trimmed.fast.gz \
+		--out1 ${out}Trimmed/${out}_r1_trimmed.fastq.gz \
 		--out2 ${out}Trimmed/${out}_r2_trimmed.fastq.gz \
                 --detect_adapter_for_pe --low_complexity_filter \
                 --cut_right --cut_front -q $qual \
