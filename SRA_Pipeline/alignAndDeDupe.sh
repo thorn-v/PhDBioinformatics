@@ -16,7 +16,6 @@ usage() { printf 'Varient Calling Pipleine V1.3
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 ## Default Values
-computeCan=''
 qual=30
 len=30
 ncores=1
@@ -31,7 +30,7 @@ while getopts "s:r:A:q:l:c:m:h" arg; do
                         REF=${OPTARG}
                         ;;
                 A)
-                        computeCan=1
+                        computeCan="x"
                         ;;
                 q)
                         qual=${OPTARG}
@@ -77,13 +76,19 @@ fi
 mkdir -p MappedReads
 R1=Trimmed/${ACC}/${ACC}_R1_trimmed.fastq.gz
 R2=Trimmed/${ACC}/${ACC}_R2_trimmed.fastq.gz
-if [[ ! -z computeCan ]]; then
 
-    picardCommand='java -jar $EBROOTPICARD/picard.jar MarkDuplicates'
+#${${VAR:+yes}:-no}
+#if flag is set, picardCommand = yes, if not then = no in above example.
+#fancy but confusing way vv
+#picardCommand=${${computeCan:+'java -jar $EBROOTPICARD/picard.jar MarkDuplicates'}:-'java -jar picard.jar MarkDuplicates'}
+
+if [[ -z ${computeCan+x} ]]; then   #if $computeCan exists (was set) because user used flag, then will turn into "x" making the string not empty, making the if statement FALSE    
+
+    picardCommand='java -jar picard.jar MarkDuplicates'
 
 else
    
-    picardCommand='java -jar picard.jar MarkDuplicates'
+    picardCommand='java -jar $EBROOTPICARD/picard.jar MarkDuplicates'
 
 fi
 
