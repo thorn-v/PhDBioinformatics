@@ -11,7 +11,7 @@ usage() { printf 'Varient Calling Pipleine V1.3
         -A\tUse this flag if running on Alliance (Compute Canada)
         -q\tQuality cutoff (deafult 30)
         -l\Length cutoff (default 30)
-        -c\tNumber of cores (default 1)
+        -j\tNumber of cores (default 1)
         -m\tMinimum number of trimmed reads needed to keep  
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
@@ -21,7 +21,7 @@ len=30
 ncores=1
 readsCutOff=0
 
-while getopts "s:r:A:q:l:c:m:h" arg; do
+while getopts "s:r:A:q:l:j:m:h" arg; do
         case $arg in
                 s)
                         ACC=${OPTARG}
@@ -38,7 +38,7 @@ while getopts "s:r:A:q:l:c:m:h" arg; do
                 l)
                         len=${OPTARG}
                         ;;
-                c)
+                j)
                         ncores=${OPTARG}
                         ;;
                 m)
@@ -135,11 +135,10 @@ genomeReadDepth=$(samtools depth -a MappedReads/${ACC}/${ACC}}_sorted-md.bam | a
 printf "Average sequence depth for ${ACC} is ${genomeReadDepth} (`date +"%Y-%m-%d %T"`\n" |\
         tee -a gvcfs_depts.info
 
-
 mkdir -p FinalMappedReads
 
 if [[ ${wgsCutOff} -gt 0 ]]; then
-        ### JP suggests 50x
+        ### JP suggests 50x for mito
         if [[ $genomeReadDepth -lt ${wgsCutOff} ]]; then
                 printf "${ACC}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than ${wgsCutOff}\t`date +"%Y-%m-%d %T"`\n" |\
                 tee -a removedAccessions.txt
