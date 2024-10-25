@@ -100,7 +100,7 @@ fi
 
 if [[ ! -e "$R2"]]; then # If it is not paired reads
         #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), send unincluded to null
-        bwa mem ${ref} ${R1} \
+        bwa mem ${REF} ${R1} \
                 -t ${ncores} -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - |\
@@ -112,7 +112,7 @@ fi
 
 if [[ -e "$R1" && -e "$R2" ]]; then # if paird
 
-        bwa mem ${ref} ${R1} ${R2} \
+        bwa mem ${REF} ${R1} ${R2} \
                 -t ${ncores}  -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - |\

@@ -7,6 +7,7 @@ usage() { printf 'Varient Calling Pipleine V1.3
         Downloads SRA files (From NCBI), extracts reads, and compresses them for further processing.
 
         -S\tPath to sample map file [REQUIRED]
+        -r\tPath to Reference sequence fasta [REQUIRED]
         -L\tProvide Path to GATK formatted interval list (defaults to generated one from initalGVCFsCalling.sh)
         -A\tUse this flag if running on Alliance (Compute Canada)
         -p\tPloidy [num] (Defaults to 1 for haploid)
@@ -59,15 +60,15 @@ if [[ ! -e "${MAP}" ]]; then
         exit 1;
 fi
 
-# if [[ -z "${REF}" ]]; then
-#         printf '\nMissing required input: -r\nPlease provide path to reference fasta\n\nUse -h for usage help\n'
-#         exit 1;
-# fi
+if [[ -z "${REF}" ]]; then
+        printf '\nMissing required input: -r\nPlease provide path to reference fasta\n\nUse -h for usage help\n'
+        exit 1;
+fi
 
-# if [[ ! -e "${REF}" ]]; then
-#         printf "\nReference file: ${REF} cannot be found\nPlease provide path to reference fasta\n\nUse -h for usage help\n"
-#         exit 1;
-# fi
+if [[ ! -e "${REF}" ]]; then
+        printf "\nReference file: ${REF} cannot be found\nPlease provide path to reference fasta\n\nUse -h for usage help\n"
+        exit 1;
+fi
 
 if [[ ! -z ${chromList+x}]]; then #if flag set
     if [[ ! -e "${chromList}" ]]; then #if file does not exist
@@ -87,9 +88,11 @@ if [[ ! -z ${computeCan+x} ]]; then  #if $computeCan exists (was set) because us
 fi
 
 ##### gatk ######
-gatk --java-options "-Xmx${javamem}g" GenomicsDBImport \
-       --genomicsdb-workspace-path wgs_database \
+gatk --java-options "-Xmx${javamem}g" GenotypeGVCFs \
+       -R ${REF} \
+       -V gendb://wgs_database \
+       -O combined_dataset_raw.vcf.gz \
        -L chroms.list \
-       --sample-name-map samples.map #will be made in the overall script along with ensuring wgs_databse is non-existant
-
+       -ploidy $ploidy \
+       -stand-call-conf 20
 

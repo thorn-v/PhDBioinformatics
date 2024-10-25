@@ -79,6 +79,7 @@ if [[ -z ${chromList+x} ]]; then   #if $chromList does not exist (was not provid
         #should probably check we don't overwrite files here.
         grep "^>" ${REF} | cut -d " " -f 1 | sed -e 's/>//g' > chroms.list
         chromList="chroms.list"
+
 fi #no need for else, if user supplied path then thats what we will use instead
 
 
@@ -97,10 +98,10 @@ fi
 gatk --java-options "-Xmx${javamem}g" HaplotypeCaller \
         -ERC GVCF \
         -ploidy ${ploidy} \
-        -R ${ref} \
-        -I ${out}_sorted-md.bam \
-        -bamout ${out}_asmbl_hap.bam \
-        -O ${workdir}/GVCFs/${out}.g.vcf 
+        -R ${REF} \
+        -I MappedReads/${ACC}/${ACC}_sorted-md.bam \
+        -O GVCFs/${ACC}.g.vcf.gz 
+
 
 
 # Ref info:
