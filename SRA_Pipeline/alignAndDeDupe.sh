@@ -1,10 +1,10 @@
 #! /usr/bin/env bash
 
 ##### Usage/Options Block #####
-usage() { printf 'Varient Calling Pipleine V1.3
+usage() { printf 'Align and DeDupes reads
         USAGE
 
-        Downloads SRA files (From NCBI), extracts reads, and compresses them for further processing.
+        Aligns using BWA MEM to reference, sorts, and de-dupes bam with Picard. 
 
         -s\tSRA sample accesson number (from NCBI, should already have been downloaded) [REQUIRED]
         -r\tPath to Reference sequence fasta [REQUIRED]
@@ -12,7 +12,7 @@ usage() { printf 'Varient Calling Pipleine V1.3
         -q\tQuality cutoff (deafult 30)
         -l\Length cutoff (default 30)
         -j\tNumber of cores (default 1)
-        -m\tMinimum number of trimmed reads needed to keep  
+        -m\tMinimum number of trimmed reads needed to keep sample (optional, sample kept by default) 
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 ## Default Values

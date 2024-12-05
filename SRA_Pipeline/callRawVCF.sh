@@ -1,10 +1,10 @@
 #! /usr/bin/env bash
 
 ##### Usage/Options Block #####
-usage() { printf 'Varient Calling Pipleine V1.3
+usage() { printf 'Call Raw combined VCF
         USAGE
 
-        Downloads SRA files (From NCBI), extracts reads, and compresses them for further processing.
+        Calls combined VCF from the GATK database created by gatkDatabaseVarientCalling.sh 
 
         -S\tPath to sample map file [REQUIRED]
         -r\tPath to Reference sequence fasta [REQUIRED]

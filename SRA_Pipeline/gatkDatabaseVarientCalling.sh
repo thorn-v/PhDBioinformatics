@@ -1,10 +1,10 @@
 #! /usr/bin/env bash
 
 ##### Usage/Options Block #####
-usage() { printf 'Varient Calling Pipleine V1.3
+usage() { printf 'GATK Database
         USAGE
 
-        Downloads SRA files (From NCBI), extracts reads, and compresses them for further processing.
+        Once all the sample GVCFs have been called, combines them into GATK database for further processing.
 
         -S\tPath to sample map file [REQUIRED]
         -L\tProvide Path to GATK formatted interval list (defaults to generated one from initalGVCFsCalling.sh)

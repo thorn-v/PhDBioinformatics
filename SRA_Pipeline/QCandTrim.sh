@@ -1,15 +1,15 @@
 #! /usr/bin/env bash
 
 ##### Usage/Options Block #####
-usage() { printf 'Varient Calling Pipleine V1.3
+usage() { printf 'QC and Trim
         USAGE
 
-        Downloads SRA files (From NCBI), extracts reads, and compresses them for further processing.
+        Quality checks and trims reads with fastp.
 
         -s\tSRA sample accesson number (from NCBI, should already have been downloaded) [REQUIRED]
         -q\tQuality cutoff (deafult 30)
         -l\Length cutoff (default 30)
-        -m\tMinimum number of trimmed reads needed to keep  
+        -m\tMinimum number of trimmed reads needed to keep sample (optional, defaults to keep sample) 
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 ## Default Values
