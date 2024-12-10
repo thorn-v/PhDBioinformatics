@@ -88,6 +88,9 @@ if [[ -z ${computeCan+x} ]]; then   #if $computeCan exists (was set) because use
 
 else
    
+    module load picard
+    module load samtools
+    module load bwa
     picardCommand='java -jar $EBROOTPICARD/picard.jar MarkDuplicates'
 
 fi

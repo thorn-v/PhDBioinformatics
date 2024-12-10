@@ -7,13 +7,17 @@ usage() { printf 'Download and Exract
         Downloads SRA files (From NCBI), extracts reads, and compresses them for further processing.
 
         -s\tSRA sample accesson number (from NCBI, max 20G) [REQUIRED]
+        -A\tUse this flag if running on Alliance (Compute Canada)
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
-while getopts "s:h" arg; do
+while getopts "s:A:h" arg; do
         case $arg in
                 s)
                         ACC=${OPTARG}
                         ;;
+                A)
+                        computeCan="x"
+                        ;;                        
                 h | *)
                         usage
                         exit 0
@@ -28,6 +32,12 @@ if [[ -z "${ACC}" ]]; then
         exit 1;
 fi
 ### Sanity Checks ###
+
+if [[ ! -z ${computeCan+x} ]]; then  #if $computeCan exists (was set) because user used flag, then will turn into "x" making the string not empty, making the if statement TRUE   
+        
+        module load sra-toolkit
+
+fi
 
 # Download Script
 prefetch ${ACC} -O SRAs/${ACC}

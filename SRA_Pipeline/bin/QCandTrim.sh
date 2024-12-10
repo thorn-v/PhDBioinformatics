@@ -8,6 +8,7 @@ usage() { printf 'QC and Trim
 
         -s\tSRA sample accesson number (from NCBI, should already have been downloaded) [REQUIRED]
         -q\tQuality cutoff (deafult 30)
+        -A\tUse this flag if running on Alliance (Compute Canada)
         -l\Length cutoff (default 30)
         -m\tMinimum number of trimmed reads needed to keep sample (optional, defaults to keep sample) 
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
@@ -17,13 +18,16 @@ qual=30
 len=30
 readsCutOff=0
 
-while getopts "s:q:l:m:h" arg; do
+while getopts "s:q:A:l:m:h" arg; do
         case $arg in
                 s)
                         ACC=${OPTARG}
                         ;;
                 q)
                         qual=${OPTARG}
+                        ;;
+                A)
+                        computeCan="x"
                         ;;
                 l)
                         len=${OPTARG}
@@ -46,6 +50,12 @@ if [[ -z "${ACC}" ]]; then
         exit 1;
 fi
 ### ### ###
+
+if [[ ! -z ${computeCan+x} ]]; then  #if $computeCan exists (was set) because user used flag, then will turn into "x" making the string not empty, making the if statement TRUE   
+        
+        module load fastp
+
+fi
 
 ### Find R1 and R2 -----
 # find the newly created files since they could have different ways of denoting R1/R2
