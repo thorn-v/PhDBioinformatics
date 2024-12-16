@@ -1,4 +1,5 @@
 #! /usr/bin/env bash
+set -euxo pipefail #debugging aid
 
 ##### Usage/Options Block #####
 usage() { printf 'GATK Database
@@ -55,7 +56,7 @@ if [[ -z "${MAP}" ]]; then
 fi
 
 if [[ ! -e "${MAP}" ]]; then
-        printf "\nReference file: ${ACC} cannot be found\nPlease provide path to sample map\n\nUse -h for usage help\n"
+        printf "\nReference file: ${MAP} cannot be found\nPlease provide path to sample map\n\nUse -h for usage help\n"
         exit 1;
 fi
 

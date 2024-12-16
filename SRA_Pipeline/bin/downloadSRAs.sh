@@ -1,4 +1,5 @@
 #! /usr/bin/env bash
+set -euxo pipefail #debugging aid
 
 ##### Usage/Options Block #####
 usage() { printf 'Download and Exract
@@ -43,8 +44,8 @@ fi
 prefetch ${ACC} -O SRAs/${ACC}
 echo "done prefetch"
 
-fasterq-dump SRA/${ACC} -O Raw_Fastqs/${ACC} 
+fasterq-dump SRA/${ACC} -O Raw_Fastqs
 echo "done unpack"
                 
-gzip Raw_Fastqs/${ACC}/*        #gzip extracted fastq(s)
+gzip Raw_Fastqs/${ACC}.*        #gzip extracted fastq(s)
 echo "done gzip"

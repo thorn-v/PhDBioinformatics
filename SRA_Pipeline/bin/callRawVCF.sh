@@ -1,4 +1,5 @@
 #! /usr/bin/env bash
+set -euxo pipefail #debugging aid
 
 ##### Usage/Options Block #####
 usage() { printf 'Call Raw combined VCF
@@ -6,7 +7,6 @@ usage() { printf 'Call Raw combined VCF
 
         Calls combined VCF from the GATK database created by gatkDatabaseVarientCalling.sh 
 
-        -S\tPath to sample map file [REQUIRED]
         -r\tPath to Reference sequence fasta [REQUIRED]
         -L\tProvide Path to GATK formatted interval list (defaults to generated one from initalGVCFsCalling.sh)
         -A\tUse this flag if running on Alliance (Compute Canada)
@@ -22,9 +22,6 @@ chromList=chroms.list
 
 while getopts "S:r:L:A:p:j:h" arg; do
         case $arg in
-                S)
-                        MAP=${OPTARG}
-                        ;;
                 r)
                         REF=${OPTARG}
                         ;;
@@ -50,15 +47,15 @@ done
 ##### End Usage/Options Block #####
 
 ### Sanity Checks ###
-if [[ -z "${MAP}" ]]; then
-        printf '\nMissing required input: -s\nPlease provide input SRA Accession\n\nUse -h for usage help\n'
-        exit 1;
-fi
+# if [[ -z "${MAP}" ]]; then
+#         printf '\nMissing required input: -s\nPlease provide input SRA Accession\n\nUse -h for usage help\n'
+#         exit 1;
+# fi
 
-if [[ ! -e "${MAP}" ]]; then
-        printf "\nReference file: ${ACC} cannot be found\nPlease provide path to sample map\n\nUse -h for usage help\n"
-        exit 1;
-fi
+# if [[ ! -e "${MAP}" ]]; then
+#         printf "\nReference file: ${ACC} cannot be found\nPlease provide path to sample map\n\nUse -h for usage help\n"
+#         exit 1;
+# fi
 
 if [[ -z "${REF}" ]]; then
         printf '\nMissing required input: -r\nPlease provide path to reference fasta\n\nUse -h for usage help\n'

@@ -1,4 +1,5 @@
 #! /usr/bin/env bash
+set -euxo pipefail #debugging aid
 
 ##### Usage/Options Block #####
 usage() { printf 'Align and DeDupes reads
@@ -12,7 +13,7 @@ usage() { printf 'Align and DeDupes reads
         -q\tQuality cutoff (deafult 30)
         -l\Length cutoff (default 30)
         -j\tNumber of cores (default 1)
-        -m\tMinimum number of trimmed reads needed to keep sample (optional, sample kept by default) 
+        -c\tMinimum number of trimmed reads needed to keep sample (optional, sample kept by default) 
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 ## Default Values
@@ -21,7 +22,7 @@ len=30
 ncores=1
 readsCutOff=0
 
-while getopts "s:r:A:q:l:j:m:h" arg; do
+while getopts "s:r:A:q:l:j:c:h" arg; do
         case $arg in
                 s)
                         ACC=${OPTARG}
@@ -41,7 +42,7 @@ while getopts "s:r:A:q:l:j:m:h" arg; do
                 j)
                         ncores=${OPTARG}
                         ;;
-                m)
+                c)
                         readsCutOff=${OPTARG}
                         ;;
                 h | *)

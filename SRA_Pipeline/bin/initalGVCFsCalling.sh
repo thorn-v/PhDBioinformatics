@@ -1,4 +1,5 @@
 #! /usr/bin/env bash
+set -euxo pipefail #debugging aid
 
 ##### Usage/Options Block #####
 usage() { printf 'Call individual GVCF file
@@ -11,7 +12,7 @@ usage() { printf 'Call individual GVCF file
         -L\tProvide Path to GATK formatted interval list (defaults to generating one from reference for whole inteval)
         -A\tUse this flag if running on Alliance (Compute Canada)
         -p\tPloidy [num] (Defaults to 1 for haploid)
-        -m\tTotal memory available to use (defults to 4G, java max memory will be m-2)  
+        -m\tTotal memory available to use, in Gb (defults to 4G, java max memory will be m-2)  
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 ## Default Values

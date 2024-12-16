@@ -1,4 +1,5 @@
 #! /usr/bin/env bash
+set -euxo pipefail #debugging aid
 
 ##### Usage/Options Block #####
 usage() { printf 'QC and Trim
@@ -10,7 +11,7 @@ usage() { printf 'QC and Trim
         -q\tQuality cutoff (deafult 30)
         -A\tUse this flag if running on Alliance (Compute Canada)
         -l\Length cutoff (default 30)
-        -m\tMinimum number of trimmed reads needed to keep sample (optional, defaults to keep sample) 
+        -c\tMinimum number of trimmed reads needed to keep sample (optional, defaults to keep sample) 
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 ## Default Values
@@ -18,7 +19,7 @@ qual=30
 len=30
 readsCutOff=0
 
-while getopts "s:q:A:l:m:h" arg; do
+while getopts "s:q:A:l:c:h" arg; do
         case $arg in
                 s)
                         ACC=${OPTARG}
@@ -32,7 +33,7 @@ while getopts "s:q:A:l:m:h" arg; do
                 l)
                         len=${OPTARG}
                         ;;
-                m)
+                c)
                         readsCutOff=${OPTARG}
                         ;;
                 h | *)
@@ -59,7 +60,7 @@ fi
 
 ### Find R1 and R2 -----
 # find the newly created files since they could have different ways of denoting R1/R2
-cd Raw_Fastqs/${ACC}
+cd Raw_Fastqs
 
 fileArray=($ACC*)
     # echo "${fileArray[@]}"
@@ -80,7 +81,7 @@ else
 fi
 
 unset fileArray
-cd ../..
+cd ..
 
 ###------
 
