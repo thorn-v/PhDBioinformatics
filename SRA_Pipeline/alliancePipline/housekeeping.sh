@@ -3,7 +3,7 @@
 #SBATCH --job-name=housekeeping
 #SBATCH -A def-jpxu
 #SBATCH --time=00:30:00     #can change
-#SBATCH --mem=2G #can change
+#SBATCH --mem=1G #can change
 
 REF=PATH/TO/FASTA/REF.fasta
 

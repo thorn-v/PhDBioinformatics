@@ -46,7 +46,7 @@ module load fastp
 
 ### Find R1 and R2 -----
 # find the newly created files since they could have different ways of denoting R1/R2
-cd Raw_Fastqs || exit 1
+cd Raw_Fastqs/${ACC}
 
 fileArray=("${ACC}"*)
     # echo "${fileArray[@]}"
@@ -78,24 +78,24 @@ mkdir -p Fastp_Logs # will only make it if not already made (so needed for the f
 
 if [ "$R2" == "NA" ]; then # If not a paired sample...
 
-        fastp -i Raw_Fastqs/"${ACC}"/"${R1}" -w "${SLURM_CPUS_PER_TASK}" \
+        fastp -i Raw_Fastqs/"${ACC}"/"${R1}" \
                 --out1 Trimmed/"${ACC}"/"${ACC}"_R1_trimmed.fastq.gz \
                 --low_complexity_filter \
                 -q ${qual} --cut_right --cut_front \
                 --length_required $len \
-                --json Fastp_Logs/"${ACC}".json
-            #    --html Fastp_Logs/${ACC}.html 
+                --json Fastp_Logs/"${ACC}".json \
+                --html Fastp_Logs/${ACC}.html 
 else  # is a paired sample
 		
         fastp -i Raw_Fastqs/"${ACC}"/"${R1}" \
-                -I Raw_Fastqs/"${ACC}"/"${R2}" -w "${SLURM_CPUS_PER_TASK}" \
+                -I Raw_Fastqs/"${ACC}"/"${R2}" \
 		--out1 Trimmed/"${ACC}"/"${ACC}"_R1_trimmed.fastq.gz \
 		--out2 Trimmed/"${ACC}"/"${ACC}"_R2_trimmed.fastq.gz \
                 --detect_adapter_for_pe --low_complexity_filter \
                 --cut_right --cut_front -q $qual \
                 --length_required $len \
-                --json Fastp_Logs/${ACC}.json 
-            #    --html Fastp_Logs/${ACC}.html 
+                --json Fastp_Logs/${ACC}.json \
+                --html Fastp_Logs/${ACC}.html 
 fi
 
 ### add quality check here to yeet files with too few reads
@@ -141,12 +141,14 @@ fi
 
 if [[ ! -e "${R2}" ]]; then # If it is not paired reads
         #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), send unincluded to null
-        #need to add readgroups (-R) or gatk complains
+        #need to add readgroups (-R) or gatk complains (unless already multi-lane)
         bwa mem "${REF}" "${R1}" \
-                -t ${SLURM_CPUS_PER_TASK} -R "@RG\tID:${ACC}\tSM:${ACC}" |\
+                -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
-                samtools sort - |\
-                java -jar $EBROOTPICARD/picard.jar MarkDuplicates -I - \
+                samtools sort - > MappedReads/${ACC}/${ACC}_sorted.bam
+                
+                java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
+                               -I MappedReads/${ACC}/${ACC}_sorted.bam \
                                -O MappedReads/${ACC}/${ACC}_sorted-md.bam \
                                -M MappedReads/${ACC}/${ACC}-md_metrics.txt
 
@@ -155,10 +157,12 @@ fi
 if [[ -e "$R1" && -e "$R2" ]]; then # if paird
 
         bwa mem "${REF}" "${R1}" "${R2}" \
-                -t ${SLURM_CPUS_PER_TASK}  -R "@RG\tID:${ACC}\tSM:${ACC}" |\
+                -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
-                samtools sort - |\
-                java -jar $EBROOTPICARD/picard.jar MarkDuplicates -I - \
+                samtools sort - > MappedReads/${ACC}/${ACC}_sorted.bam
+                
+                java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
+                               -I MappedReads/${ACC}/${ACC}_sorted.bam \
                                -O MappedReads/${ACC}/${ACC}_sorted-md.bam \
                                -M MappedReads/${ACC}/${ACC}-md_metrics.txt
 
