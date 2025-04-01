@@ -15,7 +15,7 @@ bwa index ${REF}
 samtools faidx ${REF}
 java -jar $EBROOTPICARD/picard.jar CreateSequenceDictionary \
       R=${REF} \
-      O=${REF%.f*}.dict
+      O=${REF}.dict
 
 # Create Chromosome List
 grep "^>" ${REF} | cut -d " " -f 1 | sed -e 's/>//g' > chroms.list
