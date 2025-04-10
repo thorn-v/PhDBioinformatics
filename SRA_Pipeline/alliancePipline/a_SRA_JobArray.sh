@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=SRAPipilineArray_1
 #SBATCH --ntasks=1
-#SBATCH --mem=8G #if you change this, make sure you update the -m flag with the same number
+#SBATCH --mem=8G #Needs to be 2G abosulte min, realistically should be around 8G
 #SBATCH --time=300
 #SBATCH --array=1-??%100 # !! replace the ?? with the total number of samples you have (number of lines in your configfile). if you have less than 100 samples, remove the "%100"
 
@@ -13,7 +13,7 @@ config=~/scratch/PATH/TO/configfile.txt
 # get the accession from the list
 ACC=$(sed -n "${SLURM_ARRAY_TASK_ID}p" $config)
 
-#ref should be bwa index, samtools index, and gatk dict
+#ref should be bwa index, samtools index, and gatk dict (have run housekeeping.sh)
 REF=~/PATH/TO/REF #### <<<---- put path to ref here
 
 ## Variables ##
@@ -132,6 +132,11 @@ module load picard
 module load samtools
 module load bwa
 
+javamem=$((SLURM_MEM_PER_NODE-1024)) #need to make sure there will be enough memory -
+                                     #SLURM_MEM_PER_NODE reports in Mb so equivelent to total memory allocated less 1Gb to make sure enough extra space for Java. 
+# TODO add check to make sure there is at least 2Gb of memory total
+export JAVA_TOOL_OPTIONS="-Xmx${javamem}g"
+
 
 if [[ ! -e "${R1}" && ! -e "${R2}" ]]; then  
         printf "Reads file ${R1} and ${R2}\tno reads files found - manually check it out ($(date +'%d/%m/%y %H+3:%M:%S'))\n"
@@ -198,8 +203,6 @@ module load gatk
 
 ###### Varient Calling ########
 mkdir -p GVCFs
-javamem=$((SLURM_MEM_PER_NODE-2)) #need to make sure there will be enough memory
-export JAVA_TOOL_OPTIONS="-Xmx${javamem}g"
 
 # assumes gatk is in bin, if its not, manually set path here. !!!
 gatk --java-options "-Xmx${javamem}g" HaplotypeCaller \
