@@ -22,13 +22,13 @@ if [[ ! -e "${MAP}" ]]; then
 fi
 
 module load gatk
-javamem=$((SLURM_MEM_PER_NODE-2)) #need to make sure there will be enough memory
-export JAVA_TOOL_OPTIONS="-Xmx${javamem}g"
+javamem=$((SLURM_MEM_PER_NODE-1024)) #need to make sure there will be enough memory in mb
+export JAVA_TOOL_OPTIONS="-Xmx${javamem}m"
 
 #------------------------------------------------
 #                Import Database
 #------------------------------------------------
-gatk --java-options "-Xmx${javamem}g" GenomicsDBImport \
+gatk --java-options "-Xmx${javamem}m" GenomicsDBImport \
        --genomicsdb-workspace-path ${databaseName} \
        -L ${chromList} \
        --sample-name-map ${MAP}
@@ -36,7 +36,7 @@ gatk --java-options "-Xmx${javamem}g" GenomicsDBImport \
 #------------------------------------------------
 #                Call Combined VCF
 #------------------------------------------------
-gatk --java-options "-Xmx${javamem}g" GenotypeGVCFs \
+gatk --java-options "-Xmx${javamem}m" GenotypeGVCFs \
        -R ${REF} \
        -V gendb://${databaseName} \
        -O ${OUT}.vcf.gz \
