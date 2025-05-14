@@ -116,7 +116,7 @@ module load bwa
 javamem=$((SLURM_MEM_PER_NODE-2048)) #need to make sure there will be enough memory -
                                      #SLURM_MEM_PER_NODE reports in Mb so equivelent to total memory allocated less 1Gb to make sure enough extra space for Java. 
 # TODO add check to make sure there is at least 2Gb of memory total
-export JAVA_TOOL_OPTIONS="-Xmx${javamem}g"
+export JAVA_TOOL_OPTIONS="-Xmx${javamem}m"
 
 
 if [[ ! -e "${R1}" && ! -e "${R2}" ]]; then  
