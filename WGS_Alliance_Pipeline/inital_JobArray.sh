@@ -2,7 +2,8 @@
 
 #SBATCH --job-name=inital_array
 #SBATCH --ntasks=1
-#SBATCH --mem=8G #Needs to be 3G abosulte min, realistically should be around 8G
+#SBATCH --cpus-per-task 4
+#SBATCH --mem=8G #Needs to be 4G abosulte min, realistically should be around 8G+ depending on depths.
 #SBATCH --time=300
 #SBATCH --array=1-??%100 # !! replace the ?? with the total number of samples you have (number of lines in your configfile). if you have less than 100 samples, remove the "%100"
 
