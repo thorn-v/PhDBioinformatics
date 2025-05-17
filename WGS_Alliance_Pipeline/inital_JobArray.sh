@@ -111,6 +111,7 @@ R2=Trimmed/${ACC}/${ACC}_R2_trimmed.fastq.gz
 
 
 module load picard
+module load gatk
 module load samtools
 module load bwa
 
@@ -171,7 +172,6 @@ echo "Average sequence depth for ${ACC} is ${genomeReadDepth} ($(date +"%Y-%m-%d
 #---------------------------------------------------------------------------
 #                            Initial GVCF
 #---------------------------------------------------------------------------
-module load gatk
 
 ###### Varient Calling ########
 mkdir -p GVCFs
