@@ -33,6 +33,11 @@ if [[ -e "${databaseName}" ]]; then
         exit 1;
 fi
 
+if [[ ! -e "${REF}" ]]; then
+        echo "Reference file: ${REF} cannot be found\nPlease provide path to reference fasta"
+        exit 1;
+fi
+
 ## load gatk and its memory
 module load gatk
 javamem=$((SLURM_MEM_PER_NODE-2048)) #need to make sure there will be enough memory in mb
