@@ -9,9 +9,15 @@
 ploidy=1
 chromList=chroms.list
 MAP=samples.map
+
+#ref should be have gatk dict (have run housekeeping.sh)
+REF=~/PATH/TO/REF #### <<<---- put path to ref here
+
+#these values can be changed, and should if you re-run this script
 databaseName=wgs_database  #change if you want; must not already exist
 OUT=combined_raw_dataset   #can change if want
 
+### Some Sanity Checks ###
 if [[ ! -e "${chromList}" ]]; then #if file does not exist
         echo "Provided interval file: ${chromList} cannot be found\nPlease provide path to file."
         exit 1;
@@ -23,13 +29,13 @@ if [[ ! -e "${MAP}" ]]; then
 fi
 
 if [[ -e "${databaseName}" ]]; then
-        echo "Database already exists, GATK will not work\nPlease delete it or provide new name."
+        echo "Database Directory already exists, GATK will not work\nPlease delete Diretory or provide new name."
         exit 1;
 fi
 
-
+## load gatk and its memory
 module load gatk
-javamem=$((SLURM_MEM_PER_NODE-1024)) #need to make sure there will be enough memory in mb
+javamem=$((SLURM_MEM_PER_NODE-2048)) #need to make sure there will be enough memory in mb
 export JAVA_TOOL_OPTIONS="-Xmx${javamem}m"
 
 #------------------------------------------------
