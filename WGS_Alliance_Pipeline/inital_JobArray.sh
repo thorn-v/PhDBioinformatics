@@ -176,6 +176,8 @@ module load gatk
 ###### Varient Calling ########
 mkdir -p GVCFs
 
+#TODO change this to scatter/gather option with SortVCF
+
 # assumes gatk is in bin, if its not, manually set path here. !!!
 gatk --java-options "-Xmx${javamem}g" HaplotypeCaller \
         -ERC GVCF \
@@ -186,7 +188,7 @@ gatk --java-options "-Xmx${javamem}g" HaplotypeCaller \
         -O GVCFs/${ACC}.g.vcf.gz 
 
 if [[ -e GVCFs/${ACC}.g.vcf.gz ]]; then
-        printf "${ACC}\tGVCFs/t${ACC}.g.vcf.gz\n" | tee -a samples.map
+        printf "${ACC}\tGVCFs/${ACC}.g.vcf.gz\n" | tee -a samples.map
 else
         echo "Something went wrong while making the GVCF - Check it out!"
         exit 1
