@@ -78,7 +78,7 @@ mkdir -p Fastp_Logs # will only make it if not already made (so needed for the f
 
 if [ "$R2" == "NA" ]; then # If not a paired sample...
 
-        fastp -i Raw_Fastqs/"${ACC}"/"${R1}" \
+        fastp -i Raw_Fastqs/"${R1}" \
                 --out1 Trimmed/"${ACC}"/"${ACC}"_R1_trimmed.fastq.gz \
                 --low_complexity_filter \
                 -q ${qual} --cut_right --cut_front \
@@ -86,8 +86,8 @@ if [ "$R2" == "NA" ]; then # If not a paired sample...
                 --html Fastp_Logs/${ACC}.html 
 else  # is a paired sample
 		
-        fastp -i Raw_Fastqs/"${ACC}"/"${R1}" \
-                -I Raw_Fastqs/"${ACC}"/"${R2}" \
+        fastp -i Raw_Fastqs/"${R1}" \
+                -I Raw_Fastqs/"${R2}" \
 		--out1 Trimmed/"${ACC}"/"${ACC}"_R1_trimmed.fastq.gz \
 		--out2 Trimmed/"${ACC}"/"${ACC}"_R2_trimmed.fastq.gz \
                 --detect_adapter_for_pe --low_complexity_filter \

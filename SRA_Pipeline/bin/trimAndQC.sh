@@ -52,6 +52,7 @@ if [[ -z "${ACC}" ]]; then
 fi
 ### ### ###
 
+## load modules if using compute canada / Alliance
 if [[ ! -z ${computeCan+x} ]]; then  #if $computeCan exists (was set) because user used flag, then will turn into "x" making the string not empty, making the if statement TRUE   
         
         module load fastp
@@ -118,7 +119,6 @@ else  # is a paired sample
 fi
 
 ### add quality check here to yeet files with too few reads
-export REMOVED=0
 if [[ ${readsCutOff} -gt 0 ]]; then
         passed_read_num=$(cat Fastp_Logs/${ACC}.json |\
                 python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["filtering_result"]["passed_filter_reads"])')
@@ -126,11 +126,12 @@ if [[ ${readsCutOff} -gt 0 ]]; then
         if [[ $passed_read_num -lt ${readsCutOff} ]]; then
                 printf "${ACC}\tnumReads\t${passed_read_num}\tcontained less than ${readsCutOff} reads that passed QC\t`date +"%Y-%m-%d %T"`\n" |\
                 tee -a removedAccessions.txt
-                $REMOVED=1
                 printf "Accession removed from evalutation\nExiting Script!\n"
+                echo "removed" 
                 exit 0
         fi
 fi
 
-echo "Done QC!"
+echo "QC Finished!"
+echo "continue"
 

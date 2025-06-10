@@ -13,14 +13,14 @@ usage() { printf 'Align and DeDupes reads
         -q\tQuality cutoff (deafult 30)
         -l\Length cutoff (default 30)
         -j\tNumber of cores (default 1)
-        -c\tMinimum number of trimmed reads needed to keep sample (optional, sample kept by default) 
+        -c\tMinimum number average depth needed to keep sample (numeric; defaults to 0 to keep all samples) 
         -h\tShow this help message and exit\n' 1>&2; exit 1; }
 
 ## Default Values
 qual=30
 len=30
 ncores=1
-readsCutOff=0
+wgsCutOff=0
 
 while getopts "s:r:A:q:l:j:c:h" arg; do
         case $arg in
@@ -43,7 +43,7 @@ while getopts "s:r:A:q:l:j:c:h" arg; do
                         ncores=${OPTARG}
                         ;;
                 c)
-                        readsCutOff=${OPTARG}
+                        wgsCutOff=${OPTARG}
                         ;;
                 h | *)
                         usage
@@ -66,7 +66,7 @@ if [[ -z "${REF}" ]]; then
 fi
 
 if [[ ! -e "${REF}" ]]; then
-        printf '\nReference file: ${REF} cannot be found\nPlease provide path to reference fasta\n\nUse -h for usage help\n'
+        printf "\nReference file: ${REF} cannot be found\nPlease provide path to reference fasta\n\nUse -h for usage help\n"
         exit 1;
 fi
 ### ### ###
@@ -102,9 +102,9 @@ if [[ ! -e "${R1}" && ! -e "${R2}" ]]; then
 fi
 
 
-if [[ ! -e "$R2"]]; then # If it is not paired reads
+if [[ ! -e "${R2}" ]]; then # If it is not paired reads
         #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), send unincluded to null
-        bwa mem ${REF} ${R1} \
+        bwa mem "${REF}" "${R1}" \
                 -t ${ncores} -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - |\
@@ -116,7 +116,7 @@ fi
 
 if [[ -e "$R1" && -e "$R2" ]]; then # if paird
 
-        bwa mem ${REF} ${R1} ${R2} \
+        bwa mem "${REF}" "${R1}" "${R2}" \
                 -t ${ncores}  -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort - |\
@@ -144,7 +144,7 @@ mkdir -p FinalMappedReads
 if [[ ${wgsCutOff} -gt 0 ]]; then
         ### JP suggests 50x for mito
         if [[ $genomeReadDepth -lt ${wgsCutOff} ]]; then
-                printf "${ACC}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than ${wgsCutOff}\t`date +"%Y-%m-%d %T"`\n" |\
+                printf "${ACC}\tgenomeDepth\t${genomeReadDepth}\tAverage read depth for inital map is less than ${wgsCutOff}\t$(date +"%Y-%m-%d %T")\n" |\
                 tee -a removedAccessions.txt
                 echo "Exiting Script, Qual Too Low at ${genomeReadDepth}!"
                 exit 0
@@ -152,3 +152,4 @@ if [[ ${wgsCutOff} -gt 0 ]]; then
                 mv ${ACC}_sorted-md.bam* FinalMappedReads/
                 mv ${ACC}-md_metrics.txt FinalMappedReads/
         fi
+fi
