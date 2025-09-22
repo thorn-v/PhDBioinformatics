@@ -73,13 +73,13 @@ cd ..
 
 ### Fastp QC ------
 
-mkdir -p Trimmed/"${ACC}"
+mkdir -p Trimmed
 mkdir -p Fastp_Logs # will only make it if not already made (so needed for the first one)
 
 if [ "$R2" == "NA" ]; then # If not a paired sample...
 
         fastp -i Raw_Fastqs/"${R1}" \
-                --out1 Trimmed/"${ACC}"/"${ACC}"_R1_trimmed.fastq.gz \
+                --out1 Trimmed/"${ACC}"_R1_trimmed.fastq.gz \
                 --low_complexity_filter \
                 -q ${qual} --cut_right --cut_front \
                 --length_required $len \
@@ -88,8 +88,8 @@ else  # is a paired sample
 		
         fastp -i Raw_Fastqs/"${R1}" \
                 -I Raw_Fastqs/"${R2}" \
-		--out1 Trimmed/"${ACC}"/"${ACC}"_R1_trimmed.fastq.gz \
-		--out2 Trimmed/"${ACC}"/"${ACC}"_R2_trimmed.fastq.gz \
+		--out1 Trimmed/"${ACC}"_R1_trimmed.fastq.gz \
+		--out2 Trimmed/"${ACC}"_R2_trimmed.fastq.gz \
                 --detect_adapter_for_pe --low_complexity_filter \
                 --cut_right --cut_front -q $qual \
                 --length_required $len \
@@ -106,8 +106,8 @@ echo "QC Finished!"
 ##### Mapping ######
 
 mkdir -p MappedReads
-R1=Trimmed/${ACC}/${ACC}_R1_trimmed.fastq.gz
-R2=Trimmed/${ACC}/${ACC}_R2_trimmed.fastq.gz
+R1=Trimmed/${ACC}_R1_trimmed.fastq.gz
+R2=Trimmed/${ACC}_R2_trimmed.fastq.gz
 
 
 module load picard
@@ -136,9 +136,9 @@ if [[ ! -e "${R2}" ]]; then # If it is not paired reads
                 samtools sort - > MappedReads/${ACC}/${ACC}_sorted.bam
                 
                 java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
-                               -I MappedReads/${ACC}/${ACC}_sorted.bam \
-                               -O MappedReads/${ACC}/${ACC}_sorted-md.bam \
-                               -M MappedReads/${ACC}/${ACC}-md_metrics.txt
+                               -I MappedReads/${ACC}_sorted.bam \
+                               -O MappedReads/${ACC}_sorted-md.bam \
+                               -M MappedReads/${ACC}-md_metrics.txt
 
 fi
 
@@ -147,16 +147,16 @@ if [[ -e "$R1" && -e "$R2" ]]; then # if paird
         bwa mem "${REF}" "${R1}" "${R2}" \
                 -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
-                samtools sort - > MappedReads/${ACC}/${ACC}_sorted.bam
+                samtools sort - > MappedReads/${ACC}_sorted.bam
                 
                 java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
-                               -I MappedReads/${ACC}/${ACC}_sorted.bam \
-                               -O MappedReads/${ACC}/${ACC}_sorted-md.bam \
-                               -M MappedReads/${ACC}/${ACC}-md_metrics.txt
+                               -I MappedReads/${ACC}_sorted.bam \
+                               -O MappedReads/${ACC}_sorted-md.bam \
+                               -M MappedReads/${ACC}-md_metrics.txt
 
 fi
 
-samtools index MappedReads/${ACC}/${ACC}_sorted-md.bam
+samtools index MappedReads/${ACC}_sorted-md.bam
 
 echo "Done Mapping / indexing"
 
@@ -164,7 +164,7 @@ echo "Done Mapping / indexing"
 
 ## second quality checkpoint - if the read depth is too low there is no point in continuing 
 # adding the +0.5 makes it round bc it will trunicate the number to int so rounds
-genomeReadDepth=$(samtools depth -a MappedReads/${ACC}/${ACC}_sorted-md.bam | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
+genomeReadDepth=$(samtools depth -a MappedReads/${ACC}_sorted-md.bam | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
 
 echo "Average sequence depth for ${ACC} is ${genomeReadDepth} ($(date +"%Y-%m-%d %T"))" |\
         tee -a gvcfs_depts.info
@@ -179,16 +179,16 @@ mkdir -p GVCFs
 #TODO change this to scatter/gather option with SortVCF
 
 # assumes gatk is in bin, if its not, manually set path here. !!!
-gatk --java-options "-Xmx${javamem}g" HaplotypeCaller \
+gatk --java-options "-Xmx${javamem}m" HaplotypeCaller \
         -ERC GVCF \
         -L chroms.list \
         -ploidy ${ploidy} \
         -R ${REF} \
-        -I MappedReads/${ACC}/${ACC}_sorted-md.bam \
+        -I MappedReads/${ACC}_sorted-md.bam \
         -O GVCFs/${ACC}.g.vcf.gz 
 
 if [[ -e GVCFs/${ACC}.g.vcf.gz ]]; then
-        printf "${ACC}\tGVCFs/${ACC}.g.vcf.gz\n" | tee -a samples.map
+        printf "${ACC}\tGVCFs/${ACC}.g.vcf.gz\n" | tee -a samples.map #needs to be printf for the \t to work
 else
         echo "Something went wrong while making the GVCF - Check it out!"
         exit 1
