@@ -28,10 +28,13 @@ len=30
 #     Checks
 #---------------------------
 if [[ ! -e "${REF}" ]]; then
-        echo "Reference file: ${REF} cannot be found\nPlease provide path to reference fasta"
+        echo "Reference file: ${REF} cannot be found, Please provide path to reference fasta"
         exit 1;
 fi
-
+if [[ -z "${ACC}" ]]; then
+        echo "Accession: ${REF} is blank, please try again."
+        exit 1;
+fi
 
 #===========================================================================
 #                            QC and Trim
@@ -43,6 +46,7 @@ module load fastp
 
 ## ================= ##
 
+# ASSUMES you used sraSetUp.sh or have all your raw fastqfiles in a directory ./Raw_Fastqs
 
 ### Find R1 and R2 -----
 # find the newly created files since they could have different ways of denoting R1/R2
@@ -79,7 +83,7 @@ mkdir -p Fastp_Logs # will only make it if not already made (so needed for the f
 if [ "$R2" == "NA" ]; then # If not a paired sample...
 
         fastp -i Raw_Fastqs/"${R1}" \
-                --out1 Trimmed/"${ACC}"_R1_trimmed.fastq.gz \
+                --out1 "Trimmed/${ACC}_R1_trimmed.fastq.gz" \
                 --low_complexity_filter \
                 -q ${qual} --cut_right --cut_front \
                 --length_required $len \
@@ -133,12 +137,12 @@ if [[ ! -e "${R2}" ]]; then # If it is not paired reads
         bwa mem "${REF}" "${R1}" \
                 -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
-                samtools sort - > MappedReads/${ACC}/${ACC}_sorted.bam
+                samtools sort -0 "MappedReads/${ACC}_sorted.bam" -
                 
                 java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
-                               -I MappedReads/${ACC}_sorted.bam \
-                               -O MappedReads/${ACC}_sorted-md.bam \
-                               -M MappedReads/${ACC}-md_metrics.txt
+                               -I "MappedReads/${ACC}_sorted.bam" \
+                               -O "MappedReads/${ACC}_sorted-md.bam" \
+                               -M "MappedReads/${ACC}-md_metrics.txt"
 
 fi
 
@@ -147,16 +151,16 @@ if [[ -e "$R1" && -e "$R2" ]]; then # if paird
         bwa mem "${REF}" "${R1}" "${R2}" \
                 -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
-                samtools sort - > MappedReads/${ACC}_sorted.bam
+                samtools sort -o "MappedReads/${ACC}_sorted.bam" -
                 
-                java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
-                               -I MappedReads/${ACC}_sorted.bam \
-                               -O MappedReads/${ACC}_sorted-md.bam \
-                               -M MappedReads/${ACC}-md_metrics.txt
+        java -jar "$EBROOTPICARD/picard.jar" MarkDuplicates \
+                        -I "MappedReads/${ACC}_sorted.bam" \
+                        -O "MappedReads/${ACC}_sorted-md.bam" \
+                        -M "MappedReads/${ACC}-md_metrics.txt"
 
 fi
 
-samtools index MappedReads/${ACC}_sorted-md.bam
+samtools index "MappedReads/${ACC}_sorted-md.bam"
 
 echo "Done Mapping / indexing"
 
@@ -164,7 +168,7 @@ echo "Done Mapping / indexing"
 
 ## second quality checkpoint - if the read depth is too low there is no point in continuing 
 # adding the +0.5 makes it round bc it will trunicate the number to int so rounds
-genomeReadDepth=$(samtools depth -a MappedReads/${ACC}_sorted-md.bam | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
+genomeReadDepth=$(samtools depth -a "MappedReads/${ACC}_sorted-md.bam" | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
 
 echo "Average sequence depth for ${ACC} is ${genomeReadDepth} ($(date +"%Y-%m-%d %T"))" |\
         tee -a gvcfs_depts.info
