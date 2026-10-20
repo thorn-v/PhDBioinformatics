@@ -1,8 +1,10 @@
 #! /usr/bin/env bash
 #SBATCH --job-name=combined_calling
 #SBATCH -A def-jpxu
-#SBATCH --time=01:00:00   #can change
-#SBATCH --mem=6G          #can change
+#SBATCH --cpus-per-task 4 #GATK  can use up to 4
+#SBATCH --time=120   #can change
+#SBATCH --mem=8000M          #can change
+
 ## can add  #SBATCH --mail-type=ALL  if you want it to email you updates
 
 ## Default Values
@@ -17,6 +19,9 @@ REF=~/PATH/TO/REF #### <<<---- put path to ref here
 databaseName=wgs_database  #change if you want; must not already exist
 OUT=combined_raw_dataset   #can change if want
 
+#=============================
+#     Sanity Checks
+#=============================
 ### Some Sanity Checks ###
 if [[ ! -e "${chromList}" ]]; then #if file does not exist
         echo "Provided interval file: ${chromList} cannot be found\nPlease provide path to file."
@@ -29,7 +34,7 @@ if [[ ! -e "${MAP}" ]]; then
 fi
 
 if [[ -e "${databaseName}" ]]; then
-        echo "Database Directory already exists, GATK will not work\nPlease delete Diretory or provide new name."
+        echo "Database Directory, ${databaseName}, already exists - GATK will not work\nPlease delete Diretory or provide new name."
         exit 1;
 fi
 
@@ -40,7 +45,7 @@ fi
 
 ## load gatk and its memory
 module load gatk
-javamem=$((SLURM_MEM_PER_NODE-2048)) #need to make sure there will be enough memory in mb
+javamem=$((SLURM_MEM_PER_NODE-2000)) #need to make sure there will be enough memory in mb
 export JAVA_TOOL_OPTIONS="-Xmx${javamem}m"
 
 #------------------------------------------------
@@ -59,7 +64,5 @@ gatk --java-options "-Xmx${javamem}m" GenotypeGVCFs \
        -V gendb://${databaseName} \
        -O ${OUT}.vcf.gz \
        -L $chromList \
-       -ploidy $ploidy \
-       -stand-call-conf 20
-
+       -ploidy $ploidy
 
