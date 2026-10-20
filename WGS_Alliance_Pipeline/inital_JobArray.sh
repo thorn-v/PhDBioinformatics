@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=inital_array
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task 4
+#SBATCH --cpus-per-task 4 #haplotype caller can use up to 4, bwa can use more if needed
 #SBATCH --mem=8000M #Needs to be 4G abosulte min, realistically should be around 8G+ depending on depths.
 #SBATCH --time=300
 #SBATCH --array=1-??%100 # !! replace the ?? with the total number of samples you have (number of lines in your configfile). if you have less than 100 samples, remove the "%100"
@@ -32,7 +32,7 @@ if [[ ! -e "${REF}" ]]; then
         exit 1;
 fi
 if [[ -z "${ACC}" ]]; then
-        echo "Accession: ${REF} is blank, please try again."
+        echo "Accession: ${ACC} is blank, please try again."
         exit 1;
 fi
 
@@ -86,7 +86,7 @@ if [ "$R2" == "NA" ]; then # If not a paired sample...
                 --out1 "Trimmed/${ACC}_R1_trimmed.fastq.gz" \
                 --low_complexity_filter \
                 -q ${qual} --cut_right --cut_front \
-                --length_required $len \
+                --length_required ${len} \
                 --html Fastp_Logs/${ACC}.html 
 else  # is a paired sample
 		
@@ -95,8 +95,8 @@ else  # is a paired sample
 		--out1 Trimmed/"${ACC}"_R1_trimmed.fastq.gz \
 		--out2 Trimmed/"${ACC}"_R2_trimmed.fastq.gz \
                 --detect_adapter_for_pe --low_complexity_filter \
-                --cut_right --cut_front -q $qual \
-                --length_required $len \
+                --cut_right --cut_front -q ${qual} \
+                --length_required ${len}} \
                 --html Fastp_Logs/${ACC}.html 
 fi
 
@@ -134,10 +134,10 @@ fi
 if [[ ! -e "${R2}" ]]; then # If it is not paired reads
         #bam, w/ headers, exclude unmapped, include only greater len than $len (30 default), Skip alignments with MAPQ smaller than $qual (default 30), send unincluded to null
         #need to add readgroups (-R) or gatk complains (unless already multi-lane)
-        bwa mem "${REF}" "${R1}" \
+        bwa mem "${REF}" "${R1}" -t ${SLURM_CPUS_PER_TASK} \
                 -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
-                samtools sort -0 "MappedReads/${ACC}_sorted.bam" -
+                samtools sort -o "MappedReads/${ACC}_sorted.bam" -
                 
                 java -jar $EBROOTPICARD/picard.jar MarkDuplicates \
                                -I "MappedReads/${ACC}_sorted.bam" \
@@ -148,7 +148,7 @@ fi
 
 if [[ -e "$R1" && -e "$R2" ]]; then # if paird
 
-        bwa mem "${REF}" "${R1}" "${R2}" \
+        bwa mem "${REF}" "${R1}" "${R2}" -t ${SLURM_CPUS_PER_TASK} \
                 -R "@RG\tID:${ACC}\tSM:${ACC}" |\
                 samtools view -b -h -F 4 -m ${len} -q ${qual} -U /dev/null |\
                 samtools sort -o "MappedReads/${ACC}_sorted.bam" -
@@ -166,12 +166,15 @@ echo "Done Mapping / indexing"
 
 ##### Processing ######
 
+samtools coverage -H "MappedReads/${ACC}_sorted-md.bam" |\
+        awk -v s=${ACC} '{print s "\t" $0}' >> combined_full_coverages.txt
+
 ## second quality checkpoint - if the read depth is too low there is no point in continuing 
 # adding the +0.5 makes it round bc it will trunicate the number to int so rounds
-genomeReadDepth=$(samtools depth -a "MappedReads/${ACC}_sorted-md.bam" | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
+# genomeReadDepth=$(samtools depth -a "MappedReads/${ACC}_sorted-md.bam" | awk '{sum+=$3} END {print int((sum/NR)+0.5)}')
 
-echo "Average sequence depth for ${ACC} is ${genomeReadDepth} ($(date +"%Y-%m-%d %T"))" |\
-        tee -a gvcfs_depts.info
+# echo "Average sequence depth for ${ACC} is ${genomeReadDepth} ($(date +"%Y-%m-%d %T"))" |\
+#         tee -a gvcfs_depts.info
 
 #---------------------------------------------------------------------------
 #                            Initial GVCF
@@ -180,7 +183,7 @@ echo "Average sequence depth for ${ACC} is ${genomeReadDepth} ($(date +"%Y-%m-%d
 ###### Varient Calling ########
 mkdir -p GVCFs
 
-#TODO change this to scatter/gather option with SortVCF
+#TODO change this to scatter/gather option with SortVCF in gvcf_parallel.sh
 
 # assumes gatk is in bin, if its not, manually set path here. !!!
 gatk --java-options "-Xmx${javamem}m" HaplotypeCaller \
