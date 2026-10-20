@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 
 #run this script with ./filtering.sh filename.vcf
+# if it doesn't run, use chmod +x on it first
 in=$1 
 out=${in%%_*}
 # or just replace in and out with your file name inline vvv if you copy paste instead of running this as a script
