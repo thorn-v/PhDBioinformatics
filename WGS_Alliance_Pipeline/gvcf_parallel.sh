@@ -2,9 +2,9 @@
 
 #SBATCH --job-name=parallel_gvcf
 #SBATCH --ntasks=1 
-#SBATCH --cpus-per-task 14 #needs to be the same amonut of chromosomes / should match the number of chromosomes in the chroms.list
+#SBATCH --cpus-per-task 14 #needs to be the same amonut of chromosomes / should match the number of chromosomes + scaffolds + organelles in the chroms.list
 #SBATCH --mem-per-cpu=8G #Needs to be 4G abosulte min, realistically should be around 8G+ depending on depths.
-#SBATCH --time=300
+#SBATCH --time=300 #possibly too high, depends on how big chromosome is
 #SBATCH --array=1-??%100 # !! replace the ?? with the total number of samples you have (number of lines in your configfile). if you have less than 100 samples, remove the "%100"
 
 #config file for accessions
@@ -27,13 +27,29 @@ ploidy=1
 chromList=chroms.list
 #if your chromosome list is named something else or in a different directory, fix it above
 
-javamem=$((SLURM_MEM_PER_NODE-2000)) 
-#need to make sure there will be enough memory -
-#SLURM_MEM_PER_NODE reports in Mb so equivelent to total memory allocated less 1Gb to make sure enough extra space for Java. 
+javamem=$((SLURM_MEM_PER_CPU-2000)) 
+#need to make sure there will be enough memory in each HaplotypeCaller call-
+#SLURM_MEM_PER_CPU reports in Mb so equivelent to total memory allocated less 2Gb 
+#to make sure enough extra space for Java. 
+
+#---------------------------
+#     Checks
+#---------------------------
+if [[ ! -e "${REF}" ]]; then
+        echo "Reference file: ${REF} cannot be found, Please provide path to reference fasta"
+        exit 1;
+fi
+if [[ -z "${ACC}" ]]; then
+        echo "Accession: ${ACC} is blank, please try again."
+        exit 1;
+fi
+if [[ ! -e "${chromList}" ]]; then
+        echo "chrom list file: ${chromList} cannot be found, Please provide path to chroms list"
+        exit 1;
+fi
 
 ###### Varient Calling ########
 mkdir -p GVCFs
-
 module load gatk
 module load picard
 export JAVA_TOOL_OPTIONS="-Xmx${javamem}m"
@@ -52,38 +68,25 @@ gatk --java-options "-Xmx${javamem}m" HaplotypeCaller \
 }
 export -f scatter
 
-parallel -j $SLURM_CPUS_PER_TASK --joblog combnine_${ACC}.log scatter {} ${ACC} ${REF} :::: $chromList
+parallel -j ${SLURM_CPUS_PER_TASK} --joblog combnine_${ACC}.log scatter {} ${ACC} ${REF} :::: ${chromList}
 
 wait
-#===========================
-#     Gatherx
-#===========================
-readarray -t chroms < $chromList
+# make sure all chroms are called fully before moving on
 
-# Join with spaces
+#===========================
+#     Gather
+#===========================
+readarray -t chroms < ${chromList}
+
+# Join with spaces so we have multiple inputs for the SortVCF function
 IFS=' ' commandGuts="I=GVCFs/temp/${ACC}_${chroms[*]}.g.vcf.gz"
 
-        # I=GVCFs/temp/${ACC}_${chroms[0]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[1]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[2]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[3]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[4]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[5]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[6]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[7]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[8]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[9]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[10]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[11]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[12]}.g.vcf.gz \
-        # I=GVCFs/temp/${ACC}_${chroms[13]}.g.vcf.gz \
-
-#currently hardcoded for 14 chromosomes (C neoformans)
 java -jar $EBROOTPICARD/picard.jar SortVCF \
-        ${commandGuts} \
+        "${commandGuts}" \
         O="GVCFs/${ACC}.g.vcf.gz"
 
-if [[ -e GVCFs/${ACC}.g.vcf.gz ]]; then
+# make sure it worked - the combined gvcf exists with size > 0 bytes then delete the temp individual chroms
+if [[ -s GVCFs/${ACC}.g.vcf.gz ]]; then
         printf "${ACC}\tGVCFs/${ACC}.g.vcf.gz\n" | tee -a samples.map
         rm GVCFs/temp/${ACC}.*
 else
