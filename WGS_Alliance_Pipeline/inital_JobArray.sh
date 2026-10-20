@@ -7,6 +7,8 @@
 #SBATCH --time=300
 #SBATCH --array=1-??%100 # !! replace the ?? with the total number of samples you have (number of lines in your configfile). if you have less than 100 samples, remove the "%100"
 
+# this is run after sraSetUp.sh
+
 #config file for accessions
 #should be a list of unique parts of file names for each sample - one per line
 config=~/scratch/PATH/TO/configfile.txt
