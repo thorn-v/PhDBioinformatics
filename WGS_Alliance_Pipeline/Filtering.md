@@ -1,0 +1,12 @@
+Hard Filtering Options Explanation - from GATK
+
+- Strand Odds Ratio (SOR) is also a measurement for strand bias, but it takes into account the ratios of reads that cover both alleles and is therefore a better measurement for sites that have more reads in one direction than the other. SOR values range from 0 to greater than 9, a value close to 0 indicates little or no strand bias. GATK recommends hard filtering of variants with SOR greater than 3.
+
+- RMS Mapping Quality (MQ) and Mapping Quality Rank Sum Test (MQRankSum) are both measures for mapping quality. The Root Mean Square (RMS) mapping quality (MQ) of reads across all samples provides an estimation of the overall mapping quality to support a variant call. It includes the standard deviation (SD) of the mapping qualities, where a low SD indicates values close to the mean. Good mapping qualities are around MQ 60. GATK recommends hard filtering of variants with MQ less than 40.
+
+- The Mapping Quality Rank Sum Test (MQRankSum) compares the mapping qualities of reads supporting the reference and the alternate allele. If all reads map correctly, the expected MQRankSum is 0. Negative values indicate a lower MQ of the reads supporting the alternate allele, compared to reads supporting the reference allele. MQRankSum values usually range from about -10.5 to 6.5. GATK recommends hard filtering of extreme outlier variants with MQRankSum less than -12.5.
+
+- Quality by depth (QD) is the “confidence in a call” (i.e., the QUAL score), normalized by the read depth at that site. GATK recommends hard filtering of variants with QD below 2.
+- The Read Position Rank Sum Test (ReadPosRankSum) measures the relative position of the reference versus the alternative allele within reads. E.g., SNPs towards the ends of reads may be more likely a sequencing error. A value around 0 means there is little to no difference in where the alleles are found relative to the ends of reads. GATK recommends hard filtering of variants with ReadPosRankSum less than -8.0.
+
+- The combined depth across samples (INFO/DP) is simply the sum of the read depth (i.e., the genotype depth (FORMAT/DP) fields) over all samples. Variants that have a high mean depth across all samples are indicative of either repetitive regions or paralogs. A good rule of thumb is to remove variants that show twice the mean read depth.
