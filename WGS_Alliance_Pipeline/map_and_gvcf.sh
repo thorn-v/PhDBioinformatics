@@ -115,10 +115,10 @@ echo "Average sequence depth for ${ACC} is ${mitoReadDepth} ($(date +"%Y-%m-%d %
 
 ###### Filtering #######
 
-if [[ $genomeReadDepth -lt ${wgsCutOff} ]]; then
-        printf "${ACC}\t${genomeReadDepth}\n" |\
+if [[ $mitoReadDepth -lt ${wgsCutOff} ]]; then
+        printf "${ACC}\t${mitoReadDepth}\n" |\
         tee -a removedAccessions.txt
-        echo "Exiting Script, Depth Too Low at ${genomeReadDepth}!"
+        echo "Exiting Script, Depth Too Low at ${mitoReadDepth}!"
         exit 0
 else
         echo "${ACC}" | tee -a keptAccessions.txt
